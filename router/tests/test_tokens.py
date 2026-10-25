@@ -89,3 +89,10 @@ def test_count_many_warms_cache_concurrently(tmp_path):
     tc.count_many(texts, workers=4)
     assert api.calls == calls  # all cached now
     assert len((tmp_path / "c.jsonl").read_text().splitlines()) == 31  # overhead + 30 unique texts
+
+
+def test_empty_text_counts_zero_without_calling_the_api(tmp_path):
+    api = FakeCountAPI()
+    tc = TokenCounter(api, cache_path=tmp_path / "c.jsonl", model="claude-haiku-5-5")
+    assert tc.count_text("") == 0 and tc.count_text("   \n ") == 0
+    assert api.calls == 0

@@ -85,6 +85,8 @@ class TokenCounter:
 
     def count_content(self, content) -> int:
         """Tokens for a user message's content (str or content blocks), minus request overhead."""
+        if isinstance(content, str) and not content.strip():
+            return 0  # the API rejects empty text blocks
         return max(0, self._cached("content", content, self._user_body(content)) - self.overhead())
 
     def count_text(self, text: str) -> int:
