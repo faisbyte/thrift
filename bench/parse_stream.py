@@ -27,6 +27,9 @@ def parse_stream(lines) -> dict:
     files_read: set[str] = set()
     reads = reads_ranged = 0
     errors: list[str] = []
+    seen_msgs: set[str] = set()
+    cw_5m = cw_1h = 0
+    max_prompt = 0
 
     for raw in lines:
         raw = raw.strip()
@@ -42,7 +45,17 @@ def parse_stream(lines) -> dict:
         elif et == "assistant":
             if ev.get("parent_tool_use_id"):
                 continue  # subagent traffic (disallowed in the bench, but be safe)
-            for block in (ev.get("message") or {}).get("content") or []:
+            msg = ev.get("message") or {}
+            mid = msg.get("id")
+            if mid and mid not in seen_msgs:  # one API response can span several events
+                seen_msgs.add(mid)
+                u = msg.get("usage") or {}
+                cc = u.get("cache_creation") or {}
+                cw_5m += cc.get("ephemeral_5m_input_tokens") or 0
+                cw_1h += cc.get("ephemeral_1h_input_tokens") or 0
+                max_prompt = max(max_prompt, (u.get("input_tokens") or 0) + (u.get("cache_read_input_tokens") or 0)
+                                 + (u.get("cache_creation_input_tokens") or 0))
+            for block in msg.get("content") or []:
                 if block.get("type") != "tool_use":
                     continue
                 name = block.get("name", "?")
@@ -112,6 +125,9 @@ def parse_stream(lines) -> dict:
         "init_plugin_errors": init.get("plugin_errors", []),
         "model": init.get("model"),
         "errors": errors,
+        "cache_write_1h_fraction": round(cw_1h / (cw_5m + cw_1h), 4) if (cw_5m + cw_1h) else 0.0,
+        "max_prompt_tokens": max_prompt,
+        "model_usage": model_usage,
     }
 
 

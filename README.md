@@ -151,8 +151,17 @@ same tasks while spending fewer tokens and less money?
   re-initialised as a single-commit git repo, so there's no history to mine.
 - **Isolation.** The default mode runs with an empty `CLAUDE_CONFIG_DIR`, so
   none of your settings, plugins, hooks, MCP servers or CLAUDE.md leak into
-  either arm. It requires `ANTHROPIC_API_KEY`, read from your environment or
-  from `.env` at the repo root (gitignored; `.env.example` is the template).
+  either arm.
+- **Auth.** Credentials come from your environment or from `.env` at the repo
+  root (gitignored; `.env.example` is the template). They are never printed or
+  put on the command line. `--auth auto` (the default) uses an API key if one
+  is set, otherwise your subscription:
+  - `api-key`: `ANTHROPIC_API_KEY`. The report uses Claude Code's own cost
+    figure.
+  - `subscription`: `CLAUDE_CODE_OAUTH_TOKEN`. Create it once with
+    `claude setup-token` (Pro, Max, Team or Enterprise plan), then paste it
+    into `.env`. Runs bill to your plan, so the report shows an **estimated
+    API cost** from token counts and published prices (`bench/pricing.py`).
   - `--mode bare` is available, but bare mode limits the built-in tools (no
     Grep/Glob) and may skip plugin hooks, so the comparison is less realistic.
   - `--mode user` uses your normal login but is **not** isolated.
@@ -168,25 +177,32 @@ same tasks while spending fewer tokens and less money?
 
 ```bash
 uv sync                                         # dev env: pytest, pyyaml, thriftctx
-# put your key in .env at the repo root (gitignored): ANTHROPIC_API_KEY=sk-ant-...
+# put ANTHROPIC_API_KEY=... or CLAUDE_CODE_OAUTH_TOKEN=... in .env at the repo root
 
 uv run python bench/run.py --validate           # tasks are sound (no API calls)
 uv run python bench/retrieval_eval.py           # offline recall@k (no API calls)
 uv run python bench/run.py --smoke              # 1 probe per arm: plugin, MCP, hook all load
+uv run python bench/run.py --tasks edit --repeats 2 --max-cost 2   # minimal run, haiku
 uv run python bench/run.py --quick              # 6 tasks x 2 arms x 2 repeats ≈ 24 runs
 uv run python bench/run.py --repeats 5          # full: 17 tasks x 2 arms x 5 ≈ 170 runs
 uv run python bench/run.py --arms baseline,thrift,hook-only,mcp-only --repeats 3   # ablation
 uv run python bench/report.py bench/results/<timestamp>
 ```
 
-Useful flags: `--model` (default `sonnet`), `--task ID` (repeatable),
-`--split dev|holdout|overhead`, `--max-budget-usd` (default 2 per run),
+Useful flags:
+- `--model`: default `haiku`.
+- `--tasks`: `edit`, `qa`, `all`, task ids, or a comma list.
+- `--max-cost USD`: stops starting new runs once the total for the results
+  directory reaches the limit. Finished runs are kept, and the overshoot is at
+  most one run.
+- `--auth auto|api-key|subscription`.
+- `--split dev|holdout|overhead`, `--max-budget-usd` (default 2 per run),
 `--max-turns` (default 40), `--claude-bin` (auto-detects `claude` on PATH or
 the VS Code extension's bundled binary), `--keep-workdirs`. Re-running with the
 same `--out` resumes and skips finished runs.
 
-**Rough cost:** at about $0.10–0.60 per run on Sonnet, the full run costs about
-$15–100, and `--quick` costs a few dollars.
+**Rough cost:** Haiku 5.5 is about 20× cheaper per token than Sonnet 5.5. The
+full run on Sonnet costs about $15–100. Use `--max-cost` to cap any run.
 
 ### What it records
 

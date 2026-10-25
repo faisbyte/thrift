@@ -2,16 +2,21 @@
 """A/B benchmark: Claude Code headless runs with and without the thrift plugin.
 
 Usage (from the repo root):
-  uv run python bench/run.py --validate            # check tasks (bugs fail, fixes pass)
-  uv run python bench/run.py --smoke               # verify plugin/MCP/hook load in each arm
-  uv run python bench/run.py --quick               # small paired run (~20 runs)
-  uv run python bench/run.py --repeats 5           # full run
-  uv run python bench/report.py bench/results/<ts> # comparison table
+  uv run python bench/run.py --validate                    # check tasks (bugs fail, fixes pass)
+  uv run python bench/run.py --smoke                       # verify plugin/MCP/hook load in each arm
+  uv run python bench/run.py --tasks edit --repeats 2 --max-cost 2
+  uv run python bench/run.py --quick                       # small paired run
+  uv run python bench/report.py bench/results/<ts>         # comparison report
 
-Requires ANTHROPIC_API_KEY, read from the environment or the repo's .env
-(default "isolated" mode runs with an empty
-CLAUDE_CONFIG_DIR so none of your own settings, plugins, hooks, MCP servers or
-CLAUDE.md leak into either arm).
+Auth (credentials from the environment or the repo's .env; never printed or
+put on the command line):
+  api-key       ANTHROPIC_API_KEY (passed to Claude Code via an apiKeyHelper)
+  subscription  CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token` (Pro/Max/Team/
+                Enterprise); costs in the report are estimated API prices
+  auto          api-key if ANTHROPIC_API_KEY is set, else subscription (default)
+
+The default "isolated" mode runs with an empty CLAUDE_CONFIG_DIR so none of
+your own settings, plugins, hooks, MCP servers or CLAUDE.md leak into either arm.
 """
 
 from __future__ import annotations
@@ -44,6 +49,7 @@ from common import (
     test_venv,
 )
 from parse_stream import THRIFT_TOOL_PREFIX, parse_file
+from pricing import estimate_cost
 
 THRIFT_SERVER_RULE = "mcp__plugin_thrift_thrift"
 
@@ -80,6 +86,67 @@ def find_claude(explicit: str | None) -> str:
     sys.exit("claude CLI not found; pass --claude-bin /path/to/claude")
 
 
+def resolve_auth(requested: str, mode: str, environ: dict) -> tuple[str, list[str], dict]:
+    """Pick the auth method and return (auth, extra claude args, env overrides).
+
+    Env overrides map a variable to a value, or to None to remove it from the
+    child environment. Secrets are only ever referenced by variable name.
+    """
+    has_key = bool(environ.get("ANTHROPIC_API_KEY"))
+    has_token = bool(environ.get("CLAUDE_CODE_OAUTH_TOKEN"))
+    auth = requested
+    if auth == "auto":
+        auth = "api-key" if has_key else "subscription"
+    if auth == "api-key":
+        if not has_key:
+            raise SystemExit("--auth api-key needs ANTHROPIC_API_KEY (in .env at the repo root, or exported)")
+        extra = []
+        if mode == "isolated":
+            # A fresh CLAUDE_CONFIG_DIR ignores ANTHROPIC_API_KEY from the environment
+            # ("Not logged in"); an apiKeyHelper is honoured. It reads the env var, so
+            # the key never appears on the command line.
+            extra = ["--settings", json.dumps({"apiKeyHelper": 'printf %s "$ANTHROPIC_API_KEY"'})]
+        return auth, extra, {"CLAUDE_CODE_OAUTH_TOKEN": None}
+    if auth == "subscription":
+        if mode == "bare":
+            raise SystemExit("--mode bare does not read CLAUDE_CODE_OAUTH_TOKEN; use --mode isolated for "
+                             "subscription runs")
+        if mode == "isolated" and not has_token:
+            raise SystemExit(
+                "No ANTHROPIC_API_KEY and no CLAUDE_CODE_OAUTH_TOKEN.\n"
+                "For subscription runs: run `claude setup-token` in your terminal (Pro/Max/Team/Enterprise "
+                "plan), then add CLAUDE_CODE_OAUTH_TOKEN=<token> to .env at the repo root.")
+        # an API key in the environment would outrank the OAuth token
+        overrides: dict = {"ANTHROPIC_API_KEY": None}
+        if has_token:
+            overrides["CLAUDE_CODE_OAUTH_TOKEN"] = environ["CLAUDE_CODE_OAUTH_TOKEN"]
+        return auth, [], overrides
+    raise SystemExit(f"unknown --auth {requested}")
+
+
+def select_tasks(suite: Suite, spec: str | None, ids: list[str] | None, splits: list[str] | None,
+                 quick: bool) -> list[Task]:
+    """--tasks takes kinds and/or task ids, comma-separated: "edit", "qa", "all",
+    "edit,qa-wrap". --task (repeatable ids) and --quick still work."""
+    tasks = suite.select(ids or (QUICK_TASKS if quick else None), splits)
+    if spec and spec != "all":
+        wanted = {x.strip() for x in spec.split(",") if x.strip()}
+        known_ids = {t.id for t in suite.tasks}
+        unknown = wanted - {"edit", "qa"} - known_ids
+        if unknown:
+            raise SystemExit(f"--tasks: unknown kinds/ids {sorted(unknown)} (kinds: edit, qa, all)")
+        tasks = [t for t in tasks if t.kind in wanted or t.id in wanted]
+    return tasks
+
+
+def run_cost(rec: dict) -> float:
+    """Cost used for --max-cost and the report: the API bill estimate Claude
+    Code reports for API-key runs, our price-table estimate for subscription runs."""
+    if rec.get("cost_basis") == "estimated":
+        return rec.get("est_cost_usd") or 0.0
+    return rec.get("cost_usd") or rec.get("est_cost_usd") or 0.0
+
+
 def claude_cmd(args, arm: str, prompt: str) -> list[str]:
     cfg = ARMS[arm]
     cmd = [args.claude_bin, "-p", prompt, "--output-format", "stream-json", "--verbose",
@@ -91,11 +158,7 @@ def claude_cmd(args, arm: str, prompt: str) -> list[str]:
         cmd += ["--max-budget-usd", str(args.max_budget_usd)]
     if args.mode == "bare":
         cmd.append("--bare")
-    if args.mode == "isolated":
-        # A fresh CLAUDE_CONFIG_DIR ignores ANTHROPIC_API_KEY from the environment
-        # ("Not logged in"); an apiKeyHelper is honoured. It reads the env var, so
-        # the key never appears on the command line.
-        cmd += ["--settings", json.dumps({"apiKeyHelper": 'printf %s "$ANTHROPIC_API_KEY"'})]
+    cmd += args.auth_args
     if args.permission_prompts_none:
         cmd += ["--permission-prompts", "none"]
     if cfg["plugin"]:
@@ -109,6 +172,11 @@ def claude_env(args, arm: str, venv: Path, hook_log: Path) -> dict:
     # Claude Code session (CLAUDECODE, CLAUDE_CODE_SESSION_ID, ...).
     for k in [k for k in env if k.startswith("CLAUDE")]:
         del env[k]
+    for k, v in args.auth_env.items():
+        if v is None:
+            env.pop(k, None)
+        else:
+            env[k] = v
     env.update(ARMS[arm].get("env") or {})
     env["THRIFT_HOOK_LOG"] = str(hook_log)
     if args.mode == "isolated":
@@ -166,7 +234,9 @@ def one_run(args, suite: Suite, task: Task, arm: str, rep: int, base: Path, venv
 
     rec = {
         "key": key, "task": task.id, "kind": task.kind, "split": task.split, "arm": arm, "rep": rep,
-        "model": args.model, "mode": args.mode,
+        "model": args.model, "mode": args.mode, "auth": args.auth,
+        "cost_basis": "estimated" if args.auth == "subscription" else "reported",
+        "est_cost_usd": estimate_cost(m["model_usage"], m["cache_write_1h_fraction"]),
         # correct = Q&A regexes matched / edit-task check passed (and the run didn't error out)
         "success": bool(success) and answered, "correct": bool(success) and answered, "answered": answered,
         "gold_files": task.gold_files,
@@ -176,7 +246,7 @@ def one_run(args, suite: Suite, task: Task, arm: str, rep: int, base: Path, venv
         "timed_out": timed_out, "wall_s": round(wall, 2), "index_s": round(index_s, 2) if index_s else None,
         "check_tail": check_tail, "modified_files": modified,
         "hook_fired": sum(1 for e in hook_entries if e.get("fired")), "hook_calls": len(hook_entries),
-        **{k: v for k, v in m.items() if not k.startswith("init_")},
+        **{k: v for k, v in m.items() if not k.startswith("init_") and k != "model_usage"},
         "plugins_loaded": [p.get("name") for p in m["init_plugins"]] if m["init_plugins"] else [],
         "plugin_errors": m["init_plugin_errors"],
     }
@@ -244,8 +314,10 @@ def smoke(args, suite: Suite, out_dir: Path) -> int:
         ok = all(checks.values())
         problems += not ok
         print(f"{'ok ' if ok else 'BAD'} {arm:10} " + "  ".join(f"{k}={'y' if v else 'N'}" for k, v in checks.items())
-              + f"  | in={rec['input_total']} out={rec['output_tokens']} ${rec['cost_usd'] or 0:.4f}"
+              + f"  | in={rec['input_total']} out={rec['output_tokens']} ${run_cost(rec):.4f}"
               + f" thrift_calls={rec['thrift_calls']} hook_fired={rec['hook_fired']}")
+        if "Not logged in" in (rec.get("answer") or ""):
+            print(f"     Claude Code says 'Not logged in' with --auth {args.auth}: check the credential in .env")
         if not ok:
             print(f"     servers={servers} plugin_errors={rec['plugin_errors']} stderr: "
                   f"{(out_dir / 'runs' / rec['key'] / 'stderr.txt').read_text()[-400:]}")
@@ -254,13 +326,18 @@ def smoke(args, suite: Suite, out_dir: Path) -> int:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--tasks", default=str(Path(__file__).parent / "tasks.yaml"))
+    ap.add_argument("--tasks-file", default=str(Path(__file__).parent / "tasks.yaml"))
+    ap.add_argument("--tasks", help="kinds and/or ids, comma-separated: edit, qa, all, or task ids")
     ap.add_argument("--arms", default="baseline,thrift", help=f"comma list of {','.join(ARMS)}")
     ap.add_argument("--task", action="append", help="only these task ids (repeatable)")
     ap.add_argument("--split", action="append", help="only these splits: dev, holdout, overhead")
     ap.add_argument("--repeats", type=int, default=5)
     ap.add_argument("--quick", action="store_true", help=f"{len(QUICK_TASKS)} tasks x 2 repeats")
-    ap.add_argument("--model", default="sonnet")
+    ap.add_argument("--model", default="haiku", help="Claude Code model alias or id (default: haiku)")
+    ap.add_argument("--auth", choices=["auto", "api-key", "subscription"], default="auto")
+    ap.add_argument("--max-cost", type=float,
+                    help="stop starting new runs once total cost in this results dir reaches this many USD "
+                         "(estimated API cost for subscription runs); finished runs are kept")
     ap.add_argument("--max-turns", type=int, default=40)
     ap.add_argument("--max-budget-usd", type=float, default=2.0)
     ap.add_argument("--timeout", type=float, default=900, help="seconds per run")
@@ -278,20 +355,21 @@ def main() -> int:
     ap.add_argument("--smoke", action="store_true", help="one probe run per arm to verify the setup")
     args = ap.parse_args()
 
-    suite = load_suite(args.tasks)
+    suite = load_suite(args.tasks_file)
     args.arms = [a.strip() for a in args.arms.split(",") if a.strip()]
     unknown = [a for a in args.arms if a not in ARMS]
     if unknown:
         sys.exit(f"unknown arms: {unknown}")
 
-    tasks = suite.select(args.task or (QUICK_TASKS if args.quick else None), args.split)
+    tasks = select_tasks(suite, args.tasks, args.task, args.split, args.quick)
+    if not tasks:
+        sys.exit("no tasks selected")
     if args.validate:
         return validate(suite, tasks)
 
     args.claude_bin = find_claude(args.claude_bin)
-    if args.mode in ("isolated", "bare") and not os.environ.get("ANTHROPIC_API_KEY"):
-        sys.exit("ANTHROPIC_API_KEY is required for --mode isolated/bare: put it in .env at the repo root "
-                 "(or export it), or use --mode user (not isolated)")
+    args.auth, args.auth_args, args.auth_env = resolve_auth(args.auth, args.mode, os.environ)
+    print(f"auth: {args.auth} | model: {args.model} | mode: {args.mode}")
     if args.mode == "user":
         print("warning: --mode user loads your own settings/plugins/CLAUDE.md into BOTH arms", file=sys.stderr)
 
@@ -306,10 +384,16 @@ def main() -> int:
     repeats = 2 if args.quick and args.repeats == 5 else args.repeats
     runs_path = out_dir / "runs.jsonl"
     done = set()
+    spent = 0.0
     if runs_path.exists():
-        done = {json.loads(x)["key"] for x in runs_path.read_text().splitlines() if x.strip()}
+        for x in runs_path.read_text().splitlines():
+            if x.strip():
+                prev = json.loads(x)
+                done.add(prev["key"])
+                spent += run_cost(prev)
     (out_dir / "config.json").write_text(json.dumps({
         "argv": sys.argv, "arms": args.arms, "repeats": repeats, "model": args.model, "mode": args.mode,
+        "auth": args.auth, "max_cost": args.max_cost,
         "tasks": [t.id for t in tasks], "repo": suite.repo, "claude_bin": args.claude_bin,
         "claude_version": subprocess.run([args.claude_bin, "--version"], capture_output=True, text=True).stdout.strip(),
         "started": datetime.now().isoformat(timespec="seconds"),
@@ -333,6 +417,10 @@ def main() -> int:
         key = f"{t.id}__{arm}__{rep}"
         if key in done:
             continue
+        if args.max_cost is not None and spent >= args.max_cost:
+            print(f"--max-cost ${args.max_cost:.2f} reached (spent ${spent:.3f}); not starting the remaining "
+                  f"runs. Partial results kept in {runs_path}")
+            break
         try:
             rec = one_run(args, suite, t, arm, rep, base, venv, out_dir)
         except Exception as e:  # keep going; record the failure
@@ -340,8 +428,10 @@ def main() -> int:
                    "success": False, "errors": [f"harness: {type(e).__name__}: {e}"]}
         with open(runs_path, "a") as f:
             f.write(json.dumps(rec) + "\n")
-        print(f"[{i}/{total}] {key:45} success={rec.get('success')} in={rec.get('input_total')} "
-              f"out={rec.get('output_tokens')} ${rec.get('cost_usd') or 0:.3f} files_read={rec.get('files_read')} "
+        spent += run_cost(rec)
+        print(f"[{i}/{total}] {key:45} correct={rec.get('success')} in={rec.get('input_total')} "
+              f"out={rec.get('output_tokens')} ${run_cost(rec):.3f} (total ${spent:.2f}) "
+              f"files_read={rec.get('files_read')} "
               f"thrift={rec.get('thrift_calls')} {rec.get('wall_s')}s", flush=True)
 
     print(f"\nDone. Report: uv run python bench/report.py {out_dir}")

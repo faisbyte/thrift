@@ -1,6 +1,7 @@
 """Benchmark plumbing: stream parsing, judging and the report (no API calls)."""
 
 import json
+import pytest
 import sys
 from pathlib import Path
 
@@ -148,3 +149,98 @@ def test_report_cli_writes_files(tmp_path):
     assert (tmp_path / "summary.md").exists()
     rows = (tmp_path / "runs.csv").read_text().splitlines()
     assert len(rows) == len(runs) + 1 and "correct" in rows[0]
+
+
+# --------------------------------------------------------------------- phase 3: auth, pricing, task selection
+
+import pricing  # noqa: E402
+import run as bench_run  # noqa: E402
+
+
+def test_price_lookup():
+    assert pricing.price_for("claude-haiku-5-5") == (0.10, 0.50, 0.01)
+    assert pricing.price_for("claude-sonnet-5-5") == (2.00, 10.00, 0.10)
+    assert pricing.price_for("claude-sonnet-5") == (2.00, 10.00, 0.20)  # not confused with 5-5
+    assert pricing.price_for("claude-opus-5-5[1m]") == (4.00, 20.00, 0.20)
+    assert pricing.price_for("haiku") == pricing.PRICES["claude-haiku-5-5"]
+    assert pricing.price_for("gpt-4") is None
+
+
+def test_estimate_cost_matches_hand_calculation():
+    usage = {"claude-sonnet-5-5": {"inputTokens": 2, "outputTokens": 8, "cacheReadInputTokens": 12744,
+                                   "cacheCreationInputTokens": 3485}}
+    # 2*2 + 3485*2*1.25 + 12744*0.10 + 8*10 = 10070.5 per million (matches Claude Code's own figure)
+    assert pricing.estimate_cost(usage) == 0.010071
+    # all writes at the 1-hour TTL cost 2x input instead of 1.25x
+    assert pricing.estimate_cost(usage, cache_1h_fraction=1.0) == round((4 + 3485 * 4 + 1274.4 + 80) / 1e6, 6)
+    assert pricing.estimate_cost({"mystery-model": {"inputTokens": 1}}) is None
+    assert pricing.estimate_cost({}) == 0.0
+
+
+def test_resolve_auth_api_key_never_exposes_key():
+    secret = "sk-ant-api03-SECRETSECRET"
+    auth, extra, env = bench_run.resolve_auth("auto", "isolated", {"ANTHROPIC_API_KEY": secret,
+                                                                   "CLAUDE_CODE_OAUTH_TOKEN": "tok-SECRET"})
+    assert auth == "api-key"
+    assert secret not in " ".join(extra) and "$ANTHROPIC_API_KEY" in " ".join(extra)
+    assert env == {"CLAUDE_CODE_OAUTH_TOKEN": None}  # key wins; token removed from the child
+
+
+def test_resolve_auth_subscription_default_without_key():
+    token = "sk-ant-oat01-SECRETTOKEN"
+    auth, extra, env = bench_run.resolve_auth("auto", "isolated", {"CLAUDE_CODE_OAUTH_TOKEN": token})
+    assert auth == "subscription"
+    assert extra == []  # nothing on the command line
+    assert env["ANTHROPIC_API_KEY"] is None and env["CLAUDE_CODE_OAUTH_TOKEN"] == token
+
+
+def test_resolve_auth_errors():
+    with pytest.raises(SystemExit, match="claude setup-token"):
+        bench_run.resolve_auth("auto", "isolated", {})
+    with pytest.raises(SystemExit, match="bare"):
+        bench_run.resolve_auth("subscription", "bare", {"CLAUDE_CODE_OAUTH_TOKEN": "t"})
+    with pytest.raises(SystemExit, match="ANTHROPIC_API_KEY"):
+        bench_run.resolve_auth("api-key", "isolated", {})
+    # --mode user + subscription can fall back to the normal login (no token needed)
+    assert bench_run.resolve_auth("subscription", "user", {})[0] == "subscription"
+
+
+def test_select_tasks_by_kind_and_id():
+    suite = load_suite(BENCH / "tasks.yaml")
+    edit = bench_run.select_tasks(suite, "edit", None, None, False)
+    assert edit and all(t.kind == "edit" for t in edit)
+    mixed = bench_run.select_tasks(suite, "edit,qa-wrap", None, None, False)
+    assert {t.kind for t in mixed} == {"edit", "qa"} and len(mixed) == len(edit) + 1
+    assert len(bench_run.select_tasks(suite, "all", None, None, False)) == len(suite.tasks)
+    with pytest.raises(SystemExit):
+        bench_run.select_tasks(suite, "edits", None, None, False)
+
+
+def test_run_cost_basis():
+    assert bench_run.run_cost({"cost_basis": "reported", "cost_usd": 0.5, "est_cost_usd": 0.4}) == 0.5
+    assert bench_run.run_cost({"cost_basis": "estimated", "cost_usd": 0.5, "est_cost_usd": 0.4}) == 0.4
+    assert bench_run.run_cost({}) == 0.0
+
+
+def test_parse_stream_cache_ttl_and_prompt_size():
+    events = [
+        {"type": "assistant", "message": {"id": "a", "content": [], "usage": {
+            "input_tokens": 5, "cache_read_input_tokens": 1000, "cache_creation_input_tokens": 300,
+            "cache_creation": {"ephemeral_5m_input_tokens": 100, "ephemeral_1h_input_tokens": 200}}}},
+        {"type": "assistant", "message": {"id": "a", "content": [], "usage": {  # same response, counted once
+            "input_tokens": 5, "cache_read_input_tokens": 1000, "cache_creation_input_tokens": 300,
+            "cache_creation": {"ephemeral_5m_input_tokens": 100, "ephemeral_1h_input_tokens": 200}}}},
+        {"type": "result", "usage": {}, "modelUsage": {"claude-haiku-5-5": {"inputTokens": 5}}},
+    ]
+    m = parse_stream(json.dumps(e) for e in events)
+    assert m["cache_write_1h_fraction"] == round(200 / 300, 4)
+    assert m["max_prompt_tokens"] == 1305
+    assert "claude-haiku-5-5" in m["model_usage"]
+
+
+def test_report_uses_estimated_cost_for_subscription_runs():
+    runs = [_run("t", "edit", arm, 0, True, 1.0) for arm in ("baseline", "thrift")]
+    runs[0].update(cost_basis="estimated", est_cost_usd=0.02)
+    runs[1].update(cost_basis="estimated", est_cost_usd=0.01)
+    md = report.render(runs, {"arms": ["baseline", "thrift"], "auth": "subscription"})
+    assert "estimated API prices" in md and "| Edit tasks | 1 | 1/1 | -50% |" in md

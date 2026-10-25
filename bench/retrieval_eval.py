@@ -34,7 +34,7 @@ def file_ranking(hits) -> list[str]:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--tasks", default=str(Path(__file__).parent / "tasks.yaml"))
+    ap.add_argument("--tasks-file", default=str(Path(__file__).parent / "tasks.yaml"))
     ap.add_argument("--split", action="append", help="dev / holdout (default: both)")
     ap.add_argument("-k", type=int, default=10)
     ap.add_argument("--set", action="append", default=[], metavar="FIELD=VALUE", help="override a ranking weight")
@@ -49,7 +49,7 @@ def main() -> int:
         overrides[name] = type(getattr(Weights(), name))(val)
     weights = dataclasses.replace(Weights(), **overrides)
 
-    suite = load_suite(args.tasks)
+    suite = load_suite(args.tasks_file)
     tasks = [t for t in suite.select(splits=args.split or ["dev", "holdout"]) if t.gold_files]
     base = base_checkout(suite.repo)
 

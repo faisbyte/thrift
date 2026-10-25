@@ -192,8 +192,8 @@ def task_table(runs: list[dict], arms: list[str], tags: dict[str, str], cost_fie
 
 
 def arm_totals(runs: list[dict], arms: list[str], cost_field: str) -> list[str]:
-    head = ["group", "arm", "runs", "answered", "success", "mean cost $", "mean in total", "mean out",
-            "wall s", "turns", "files read"]
+    head = ["group", "arm", "runs", "answered", "success", "mean cost $", "est. API $ (price table)",
+            "mean in total", "mean out", "wall s", "turns", "files read"]
     out = ["| " + " | ".join(head) + " |", "|" + "---|" * len(head)]
     for gkey, glabel in GROUPS + [(None, "Overall")]:
         rs_g = [r for r in runs if gkey is None or r.get("kind") == gkey]
@@ -204,7 +204,7 @@ def arm_totals(runs: list[dict], arms: list[str], cost_field: str) -> list[str]:
             a = agg(rs, cost_field)
             out.append("| " + " | ".join([
                 glabel, arm, str(a["n"]), _rate(a["answered"]), _rate(a["success"]), fmt(a["cost"], "{:.4f}"),
-                fmt(a["input_total"], "{:,.0f}"), fmt(a["output_tokens"], "{:,.0f}"), fmt(a["wall_s"], "{:.0f}"),
+                fmt(mean([r.get("est_cost_usd") for r in rs]), "{:.4f}"), fmt(a["input_total"], "{:,.0f}"), fmt(a["output_tokens"], "{:,.0f}"), fmt(a["wall_s"], "{:.0f}"),
                 fmt(a["num_turns"], "{:.1f}"), fmt(a["files_read"], "{:.1f}")]) + " |")
     return out
 
@@ -265,7 +265,13 @@ def render(runs: list[dict], cfg: dict) -> str:
            f"model `{cfg.get('model')}`, mode `{cfg.get('mode')}`, auth `{cfg.get('auth', '?')}`, "
            f"{cfg.get('claude_version', '')}, {len(main)} task runs, repeats {cfg.get('repeats')}", ""]
     if cost_field != "cost_usd":
-        out += ["Costs are **estimated API prices** from token counts (runs used a subscription).", ""]
+        out += ["Costs are **estimated API prices** computed from token counts and published per-token prices "
+                "(these runs used a subscription, so there is no API bill).", ""]
+    long_haiku = [r for r in main if "haiku" in str(r.get("model", "")).lower()
+                  and (r.get("max_prompt_tokens") or 0) > 100_000]
+    if long_haiku:
+        out += [f"Note: {len(long_haiku)} Haiku runs sent a prompt over 100K tokens; those requests bill at the "
+                "long-context rate, which the cost estimate does not apply (it under-estimates them).", ""]
     out += ["success = the answer was CORRECT (Q&A regexes matched / edit-task tests passed). "
             "hook_hit = the prompt hook's pointer line named a file the task needs.", ""]
 
