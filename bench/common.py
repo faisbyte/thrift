@@ -49,6 +49,7 @@ class Task:
     setup: list[dict] = field(default_factory=list)
     check: str | None = None
     no_suffix: bool = False
+    reference: list[dict] = field(default_factory=list)  # setup ops that solve the task (for --validate)
 
     def full_prompt(self, defaults: dict) -> str:
         if self.no_suffix:
@@ -115,7 +116,18 @@ def test_venv(repo: dict) -> Path:
 
 
 def apply_setup(workdir: Path, setup: list[dict]) -> None:
+    """Apply setup ops in order: {file, old, new} exact replacement, {create, content} new file,
+    {run} shell command in the work dir ({python} = this interpreter, for deterministic generators)."""
     for step in setup:
+        if "create" in step:
+            p = workdir / step["create"]
+            p.parent.mkdir(parents=True, exist_ok=True)
+            p.write_text(step["content"])
+            continue
+        if "run" in step:
+            subprocess.run(step["run"].replace("{python}", sys.executable), cwd=workdir, shell=True,
+                           check=True, capture_output=True, text=True, timeout=120)
+            continue
         p = workdir / step["file"]
         text = p.read_text()
         n = text.count(step["old"])

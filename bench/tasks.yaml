@@ -207,3 +207,109 @@ tasks:
     gold_files: []
     expect_all: ['OK']
     no_suffix: true
+
+  # ------------------------------------------------------------------ heavier tasks (bigger tool inputs/outputs)
+  - id: heavy-new-module
+    kind: edit
+    split: heavy
+    prompt: >-
+      Add a new module rich/_stats.py with a function describe(values) that takes a list of numbers and
+      returns a dict with the keys "count", "min", "max", "mean" and "median" (mean and median as floats).
+      For an empty list it must raise ValueError("no values"). Also add tests in tests/test_stats.py covering
+      ordinary input, a single value, an even-length list (median is the mean of the two middle values) and
+      the empty case, and make sure they pass.
+    gold_files: [rich/__init__.py]
+    check: |
+      python - <<'PYEOF' && test -f tests/test_stats.py && python -m pytest -q -p no:cacheprovider tests/test_stats.py
+      from rich._stats import describe as d
+      assert d([3, 1, 2]) == {"count": 3, "min": 1, "max": 3, "mean": 2.0, "median": 2.0}, d([3, 1, 2])
+      assert d([1, 2, 3, 4])["median"] == 2.5 and d([5])["median"] == 5.0
+      try:
+          d([])
+      except ValueError as e:
+          assert "no values" in str(e)
+      else:
+          raise AssertionError("empty list did not raise")
+      PYEOF
+    reference:
+      - create: rich/_stats.py
+        content: |
+          def describe(values):
+              values = list(values)
+              if not values:
+                  raise ValueError("no values")
+              s = sorted(values)
+              n = len(s)
+              mid = n // 2
+              median = float(s[mid]) if n % 2 else (s[mid - 1] + s[mid]) / 2.0
+              return {"count": n, "min": s[0], "max": s[-1], "mean": sum(s) / float(n), "median": median}
+      - create: tests/test_stats.py
+        content: |
+          import pytest
+          from rich._stats import describe
+
+          def test_ordinary():
+              assert describe([3, 1, 2])["mean"] == 2.0
+
+          def test_single():
+              assert describe([5])["median"] == 5.0
+
+          def test_even():
+              assert describe([1, 2, 3, 4])["median"] == 2.5
+
+          def test_empty():
+              with pytest.raises(ValueError):
+                  describe([])
+
+  - id: heavy-refactor-loop-first
+    kind: edit
+    split: heavy
+    prompt: >-
+      Refactor: rename the helper loop_first in rich/_loop.py to iter_first, and update every module in rich/
+      that uses it to import and call iter_first instead. Keep loop_first available in rich/_loop.py as a
+      backwards-compatible alias of iter_first.
+    gold_files: [rich/_loop.py, rich/tree.py, rich/markdown.py, rich/syntax.py]
+    check: >-
+      python -c "from rich._loop import iter_first, loop_first; assert loop_first is iter_first;
+      assert list(iter_first('ab')) == [(True, 'a'), (False, 'b')]"
+      && test -z "$(grep -rlw --include='*.py' loop_first rich | grep -v '^rich/_loop.py$')"
+      && python -m pytest -q -p no:cacheprovider tests/test_tree.py tests/test_markdown.py
+      -k 'not test_inline_code_in_table_cells'
+    reference:
+      - run: >-
+          {python} -c "import re, pathlib;
+          [p.write_text(re.sub(r'\bloop_first\b', 'iter_first', p.read_text())) for p in pathlib.Path('rich').glob('*.py')];
+          p = pathlib.Path('rich/_loop.py'); p.write_text(p.read_text() + '\n\nloop_first = iter_first\n')"
+
+  - id: heavy-fix-long-run
+    kind: edit
+    split: heavy
+    prompt: >-
+      Some tests are failing. Run the whole test suite with `python -m pytest tests -v` and fix the bugs in
+      the library code. Failures in tests/test_syntax.py, tests/test_card.py and tests/test_traceback.py are
+      caused by the installed Pygments version; ignore those.
+    gold_files: [rich/segment.py, rich/text.py]
+    setup:
+      - file: rich/segment.py
+        old: "                    _text, new_line, text = text.partition(\"\\n\")\n                    if _text:\n                        append(cls(_text, style))\n                    if new_line:\n                        yield line\n"
+        new: "                    _text, new_line, text = text.partition(\"\\n\")\n                    if _text and not new_line:\n                        append(cls(_text, style))\n                    if new_line:\n                        yield line\n"
+      - file: rich/text.py
+        old: '                    self.plain = set_cell_size(self.plain, max_width - 1) + "…"'
+        new: '                    self.plain = set_cell_size(self.plain, max_width) + "…"'
+    check: python -m pytest -q -p no:cacheprovider tests/test_segment.py tests/test_text.py
+
+  - id: heavy-json-inventory
+    kind: qa
+    split: heavy
+    prompt: >-
+      The file data/inventory.json lists stock records. Inspect it with a shell command (for example
+      `cat data/inventory.json`) and tell me (1) the total qty across all items in warehouse east and
+      (2) the sku of the most expensive item.
+    gold_files: [data/inventory.json]
+    setup:
+      - run: >-
+          {python} -c "import json, random, os; r = random.Random(7); skus = r.sample(range(1000, 9999), 150);
+          recs = [{'id': 1000 + i, 'sku': f'SKU-{skus[i]}', 'name': f'item-{i}', 'price': round(r.uniform(1, 500), 2),
+          'qty': r.randint(0, 90), 'warehouse': r.choice(['east', 'west', 'north', 'south'])} for i in range(150)];
+          os.makedirs('data', exist_ok=True); json.dump(recs, open('data/inventory.json', 'w'), indent=2)"
+    expect_all: ['1452', 'SKU-2019']

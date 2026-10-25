@@ -64,7 +64,7 @@ def test_tasks_file_loads():
     for t in suite.tasks:
         assert t.kind in ("qa", "edit")
         if t.kind == "edit":
-            assert t.setup and t.check
+            assert (t.setup or t.reference) and t.check  # an injected bug, or a reference solution
         else:
             assert t.expect_all or t.expect_any
 
@@ -285,3 +285,33 @@ def test_summarize_proxy_corpus(tmp_path):
     assert s == {"proxy_requests": 3, "proxy_errors": 1, "router_blocks": 1, "router_saved_est": 800,
                  "router_transforms": {"log_filter": 1}}
     assert bench_run.summarize_proxy_corpus(tmp_path / "missing")["proxy_requests"] == 0
+
+
+# --------------------------------------------------------------------- setup ops for heavier tasks
+
+def test_apply_setup_create_and_run_ops(tmp_path):
+    from common import apply_setup
+
+    (tmp_path / "a.py").write_text("x = 1\n")
+    apply_setup(tmp_path, [
+        {"file": "a.py", "old": "x = 1", "new": "x = 2"},
+        {"create": "pkg/new.py", "content": "VALUE = 3\n"},
+        {"run": "{python} -c \"open('gen.txt','w').write('generated')\""},
+    ])
+    assert (tmp_path / "a.py").read_text() == "x = 2\n"
+    assert (tmp_path / "pkg" / "new.py").read_text() == "VALUE = 3\n"
+    assert (tmp_path / "gen.txt").read_text() == "generated"
+
+
+def test_failing_run_op_raises(tmp_path):
+    from common import apply_setup
+
+    with pytest.raises(Exception):
+        apply_setup(tmp_path, [{"run": "{python} -c \"raise SystemExit(3)\""}])
+
+
+def test_task_accepts_reference_solution():
+    from common import Task
+
+    t = Task(id="x", kind="edit", prompt="p", check="true", reference=[{"create": "a.py", "content": "1"}])
+    assert t.reference[0]["create"] == "a.py"

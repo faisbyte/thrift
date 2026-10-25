@@ -365,7 +365,10 @@ def validate(suite: Suite, tasks: list[Task]) -> int:
                 print(f"ok   {t.id} (qa)")
                 continue
             broken_ok, _ = run_check(t, wd, venv)
-            apply_setup(wd, [{"file": s["file"], "old": s["new"], "new": s["old"]} for s in t.setup])
+            if t.reference:  # a task with no injected bug: the reference solution must make the check pass
+                apply_setup(wd, t.reference)
+            else:
+                apply_setup(wd, [{"file": s["file"], "old": s["new"], "new": s["old"]} for s in t.setup])
             fixed_ok, tail = run_check(t, wd, venv)
             if broken_ok or not fixed_ok:
                 print(f"FAIL {t.id}: check passes with bug={broken_ok}, passes when fixed={fixed_ok}\n{tail}")
