@@ -92,3 +92,16 @@ def test_verdict_uses_promised_retention_when_available():
     sb = measure([conv(3)], [Halve()], count=count, prefix_tokens=1000)
     fid = {"halve": {"retained": 0.5, "n_paired": 40, "promised": {"retained": 0.98, "n_paired": 20}}}
     assert verdicts(sb, fid, min_share=0.0001, min_retained=0.95)["halve"][0] is True
+
+
+def test_measure_includes_assistant_tool_use_blocks():
+    from reprouter.transforms.tool_input_elide import ToolInputElide
+
+    c = conv(3)
+    big = "\n".join(f"line {i} of the new file" for i in range(100))
+    c["body"]["messages"][1]["content"] = [{"type": "tool_use", "id": "a", "name": "Write",
+                                            "input": {"file_path": "/w/x.py", "content": big}}]
+    sb = measure([c], [ToolInputElide()], count=count, prefix_tokens=0)
+    st = sb.transforms["tool_input_elide"]
+    assert st.applied == 1 and st.tokens_after < st.tokens_before
+    assert "tool_use" in st.by_kind

@@ -77,6 +77,11 @@ def _block_text(block) -> str:
 
 
 def iter_tool_results(conversations: list[dict]):
+    yield from (r for r in iter_routable(conversations) if r.block.type == "tool_result")
+
+
+def iter_routable(conversations: list[dict]):
+    """Every block the router may rewrite: tool results and the model's own tool_use inputs."""
     for conv in conversations:
         body = conv["body"]
         assistants = _assistant_indices(body)
@@ -85,7 +90,7 @@ def iter_tool_results(conversations: list[dict]):
         root = project_root(body)
         prior = []
         for block, label in classify_request(body):
-            if block.type == "tool_result":
+            if block.type in ("tool_result", "tool_use"):  # everything the router may rewrite
                 after = sum(1 for a in assistants if a > (block.msg_index or 0))
                 yield ToolResultRecord(conv.get("session", ""), block, label, list(prior), after, root)
             prior.append((block, label))
@@ -94,6 +99,8 @@ def iter_tool_results(conversations: list[dict]):
 def _content_tokens(content, count) -> int:
     if isinstance(content, str):
         return count(content)
+    if isinstance(content, dict):  # a rewritten tool_use input
+        return count(json.dumps(content, ensure_ascii=False))
     total = 0
     for c in content or []:
         if c.get("type") == "text":
@@ -123,10 +130,12 @@ def measure(conversations: list[dict], transforms: list, count, prefix_tokens: i
             for k, r in REGIMES.items():
                 sb.session_weighted[k] += n * (r.write + r.read * after)
 
-    for rec in iter_tool_results(conversations):
-        sb.tool_results += 1
+    for rec in iter_routable(conversations):
+        if rec.block.type == "tool_result":
+            sb.tool_results += 1
         before = count(rec.block.text or "")
-        sb.tool_result_tokens += before
+        if rec.block.type == "tool_result":
+            sb.tool_result_tokens += before
         ctx = Context(project_root=rec.project_root, prior=rec.prior)
         for t in transforms:
             policy = Policy(transforms=[t], margin=0.0, allow_nontext=allow_nontext)

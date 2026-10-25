@@ -14,6 +14,7 @@ so history that predates the router stays untouched.
 from __future__ import annotations
 
 import dataclasses
+import json
 from dataclasses import dataclass, field
 
 from .classify import classify_request, project_root
@@ -22,6 +23,7 @@ from .tokens import estimate_tokens, image_tokens
 from .transforms.base import Context, Result, Transform
 
 LOSSY_BLOCKED = frozenset({"code_edit_target"})
+ROUTABLE = frozenset({"tool_result", "tool_use"})  # tool_use: the model's own past calls (proxy only)
 NONTEXT_BLOCKED = frozenset({"code_edit_target", "hash", "uuid", "id"})
 
 
@@ -48,6 +50,8 @@ class Decision:
 def content_tokens(content) -> int:
     if isinstance(content, str):
         return estimate_tokens(content)
+    if isinstance(content, dict):  # a rewritten tool_use input
+        return estimate_tokens(json.dumps(content, ensure_ascii=False))
     total = 0
     for c in content or []:
         if c.get("type") == "text":
@@ -135,7 +139,7 @@ def route(req: dict, policy: Policy, min_msg_index: int = 0) -> tuple[dict, list
     replacements: dict = {}
     decisions: list[Decision] = []
     for block, label in labeled:
-        if block.type == "tool_result" and (block.msg_index or 0) >= min_msg_index:
+        if block.type in ROUTABLE and (block.msg_index or 0) >= min_msg_index:
             ctx = Context(project_root=ctx_root, prior=list(prior), model=model)
             decision, content = decide(block, label, ctx, policy)
             decisions.append(decision)

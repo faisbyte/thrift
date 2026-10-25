@@ -8,6 +8,7 @@ decisions exactly (prompt caching + preserved-thinking binding).
 
 from __future__ import annotations
 
+import json
 import logging
 from dataclasses import dataclass, field
 
@@ -32,12 +33,14 @@ class Result:
 
     @property
     def text_only(self) -> bool:
-        return isinstance(self.content, str)
+        return isinstance(self.content, (str, dict))  # dict = a rewritten tool_use input
 
     @property
     def text(self) -> str:
         if isinstance(self.content, str):
             return self.content
+        if isinstance(self.content, dict):
+            return json.dumps(self.content, ensure_ascii=False)
         return "\n".join(c.get("text", "") for c in self.content if c.get("type") == "text")
 
 
@@ -60,7 +63,7 @@ class Transform:
         except Exception:  # transforms must never break a request
             log.exception("transform %s failed", self.name)
             return None
-        if res is None or (res.text_only and res.content == block.text):
+        if res is None or (res.text_only and res.text == block.text):
             return None
         return res
 

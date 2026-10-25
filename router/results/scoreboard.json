@@ -1,11 +1,11 @@
 {
   "prefix_tokens": 27599,
   "sessions": 9,
-  "tool_results": 1152,
-  "tool_result_tokens": 780980,
+  "tool_results": 1182,
+  "tool_result_tokens": 791122,
   "session_weighted": {
-    "api_5m_haiku": 29703441.400000025,
-    "sub_1h_sonnet": 18173599.7
+    "api_5m_haiku": 31717324.35,
+    "sub_1h_sonnet": 19225587.549999986
   },
   "transforms": {
     "dedup": {
@@ -14,8 +14,8 @@
       "tokens_before": 194,
       "tokens_after": 60,
       "weighted": {
-        "api_5m_haiku": 1681.7,
-        "sub_1h_sonnet": 1025.1000000000001
+        "api_5m_haiku": 2083.7000000000003,
+        "sub_1h_sonnet": 1226.1000000000001
       },
       "by_kind": {
         "tool_result:command_output": {
@@ -26,16 +26,16 @@
         }
       },
       "verdict": false,
-      "reason": "savings too small (0.006% of session cost < 0.10%)"
+      "reason": "savings too small (0.007% of session cost < 0.10%)"
     },
     "alias": {
       "lossless": true,
-      "applied": 295,
-      "tokens_before": 141751,
-      "tokens_after": 122528,
+      "applied": 299,
+      "tokens_before": 142114,
+      "tokens_after": 122777,
       "weighted": {
-        "api_5m_haiku": 188240.45000000007,
-        "sub_1h_sonnet": 120551.85000000005
+        "api_5m_haiku": 202206.9500000001,
+        "sub_1h_sonnet": 127691.85000000005
       },
       "by_kind": {
         "tool_result:search_results": {
@@ -45,16 +45,16 @@
           "saved": 1271
         },
         "tool_result:command_output": {
-          "applied": 99,
-          "before": 101599,
-          "after": 89849,
-          "saved": 11750
+          "applied": 101,
+          "before": 101856,
+          "after": 90028,
+          "saved": 11828
         },
         "tool_result:edit_confirmation": {
-          "applied": 169,
-          "before": 10630,
-          "after": 6922,
-          "saved": 3708
+          "applied": 171,
+          "before": 10736,
+          "after": 6992,
+          "saved": 3744
         },
         "tool_result:test_output": {
           "applied": 5,
@@ -136,8 +136,8 @@
       "tokens_before": 134162,
       "tokens_after": 84691,
       "weighted": {
-        "api_5m_haiku": 760010.4500000001,
-        "sub_1h_sonnet": 448027.85000000003
+        "api_5m_haiku": 790241.4500000001,
+        "sub_1h_sonnet": 463143.35
       },
       "by_kind": {
         "tool_result:command_output": {
@@ -174,7 +174,7 @@
         }
       },
       "verdict": false,
-      "reason": "savings too small (0.060% of session cost < 0.10%)"
+      "reason": "savings too small (0.056% of session cost < 0.10%)"
     },
     "linenum_sparse": {
       "lossless": false,
@@ -194,33 +194,27 @@
         }
       },
       "verdict": false,
-      "reason": "savings too small (0.077% of session cost < 0.10%)"
+      "reason": "savings too small (0.072% of session cost < 0.10%)"
     },
     "log_filter": {
       "lossless": false,
-      "applied": 3,
-      "tokens_before": 11507,
-      "tokens_after": 1675,
+      "applied": 2,
+      "tokens_before": 10429,
+      "tokens_after": 1203,
       "weighted": {
-        "api_5m_haiku": 94232.00000000001,
-        "sub_1h_sonnet": 60635.0
+        "api_5m_haiku": 98970.5,
+        "sub_1h_sonnet": 62171.0
       },
       "by_kind": {
-        "tool_result:test_output": {
-          "applied": 1,
-          "before": 1078,
-          "after": 564,
-          "saved": 514
-        },
         "tool_result:command_output": {
           "applied": 2,
           "before": 10429,
-          "after": 1111,
-          "saved": 9318
+          "after": 1203,
+          "saved": 9226
         }
       },
       "verdict": false,
-      "reason": "untested fidelity (no probe results)"
+      "reason": "fidelity 94% < 95% on promised probes"
     },
     "skeleton": {
       "lossless": false,
@@ -254,8 +248,8 @@
       "tokens_before": 86550,
       "tokens_after": 85561,
       "weighted": {
-        "api_5m_haiku": 11683.849999999995,
-        "sub_1h_sonnet": 7201.799999999995
+        "api_5m_haiku": 11824.849999999995,
+        "sub_1h_sonnet": 7272.299999999995
       },
       "by_kind": {
         "tool_result:command_output": {
@@ -278,7 +272,7 @@
         }
       },
       "verdict": false,
-      "reason": "savings too small (0.039% of session cost < 0.10%)"
+      "reason": "savings too small (0.037% of session cost < 0.10%)"
     }
   }
 }

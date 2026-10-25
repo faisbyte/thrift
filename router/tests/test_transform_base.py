@@ -59,3 +59,8 @@ def test_run_fails_closed_on_transform_exception():
             raise RuntimeError("bug")
 
     assert Boom().run(blk(), Label("x"), Context()) is None
+
+
+def test_dict_results_count_as_text_for_tool_use_inputs():
+    r = Result(content={"command": "ls"}, lossless=False)
+    assert r.text_only and r.text == '{"command": "ls"}'

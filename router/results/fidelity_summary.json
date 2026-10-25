@@ -265,80 +265,6 @@
       "p_value": 0.00634765625
     }
   },
-  "log_filter": {
-    "n": 48,
-    "n_paired": 47,
-    "orig_acc": 0.9791666666666666,
-    "tx_acc": 0.7083333333333334,
-    "retained": 0.7021276595744681,
-    "lost": 14,
-    "gained": 1,
-    "p_value": 0.0009765625,
-    "by_type": {
-      "exact": {
-        "n": 20,
-        "n_paired": 20,
-        "orig_acc": 1.0,
-        "tx_acc": 0.65,
-        "retained": 0.65,
-        "lost": 7,
-        "gained": 0,
-        "p_value": 0.015625
-      },
-      "number": {
-        "n": 20,
-        "n_paired": 19,
-        "orig_acc": 0.95,
-        "tx_acc": 0.65,
-        "retained": 0.631578947368421,
-        "lost": 7,
-        "gained": 1,
-        "p_value": 0.0703125
-      },
-      "absent": {
-        "n": 8,
-        "n_paired": 8,
-        "orig_acc": 1.0,
-        "tx_acc": 1.0,
-        "retained": 1.0,
-        "lost": 0,
-        "gained": 0,
-        "p_value": 1.0
-      }
-    },
-    "by_focus": {
-      "errors": {
-        "n": 32,
-        "n_paired": 31,
-        "orig_acc": 0.96875,
-        "tx_acc": 0.90625,
-        "retained": 0.9032258064516129,
-        "lost": 3,
-        "gained": 1,
-        "p_value": 0.625
-      },
-      "general": {
-        "n": 16,
-        "n_paired": 16,
-        "orig_acc": 1.0,
-        "tx_acc": 0.3125,
-        "retained": 0.3125,
-        "lost": 11,
-        "gained": 0,
-        "p_value": 0.0009765625
-      }
-    },
-    "promised": {
-      "n": 32,
-      "n_paired": 31,
-      "orig_acc": 0.96875,
-      "tx_acc": 0.90625,
-      "retained": 0.9032258064516129,
-      "lost": 3,
-      "gained": 1,
-      "p_value": 0.625
-    }
-  },
   "whitespace": {
     "n": 12,
     "n_paired": 12,
@@ -541,154 +467,6 @@
       "p_value": 1.0
     }
   },
-  "linenum_sparse": {
-    "n": 12,
-    "n_paired": 10,
-    "orig_acc": 0.8333333333333334,
-    "tx_acc": 0.5833333333333334,
-    "retained": 0.7,
-    "lost": 3,
-    "gained": 0,
-    "p_value": 0.25,
-    "by_type": {
-      "number": {
-        "n": 4,
-        "n_paired": 3,
-        "orig_acc": 0.75,
-        "tx_acc": 0.75,
-        "retained": 1.0,
-        "lost": 0,
-        "gained": 0,
-        "p_value": 1.0
-      },
-      "exact": {
-        "n": 4,
-        "n_paired": 3,
-        "orig_acc": 0.75,
-        "tx_acc": 0.0,
-        "retained": 0.0,
-        "lost": 3,
-        "gained": 0,
-        "p_value": 0.25
-      },
-      "absent": {
-        "n": 4,
-        "n_paired": 4,
-        "orig_acc": 1.0,
-        "tx_acc": 1.0,
-        "retained": 1.0,
-        "lost": 0,
-        "gained": 0,
-        "p_value": 1.0
-      }
-    },
-    "by_focus": {
-      "signatures": {
-        "n": 8,
-        "n_paired": 7,
-        "orig_acc": 0.875,
-        "tx_acc": 0.875,
-        "retained": 1.0,
-        "lost": 0,
-        "gained": 0,
-        "p_value": 1.0
-      },
-      "body": {
-        "n": 4,
-        "n_paired": 3,
-        "orig_acc": 0.75,
-        "tx_acc": 0.0,
-        "retained": 0.0,
-        "lost": 3,
-        "gained": 0,
-        "p_value": 0.25
-      }
-    },
-    "promised": {
-      "n": 12,
-      "n_paired": 10,
-      "orig_acc": 0.8333333333333334,
-      "tx_acc": 0.5833333333333334,
-      "retained": 0.7,
-      "lost": 3,
-      "gained": 0,
-      "p_value": 0.25
-    }
-  },
-  "skeleton": {
-    "n": 12,
-    "n_paired": 10,
-    "orig_acc": 0.8333333333333334,
-    "tx_acc": 0.3333333333333333,
-    "retained": 0.4,
-    "lost": 6,
-    "gained": 0,
-    "p_value": 0.03125,
-    "by_type": {
-      "number": {
-        "n": 4,
-        "n_paired": 3,
-        "orig_acc": 0.75,
-        "tx_acc": 0.0,
-        "retained": 0.0,
-        "lost": 3,
-        "gained": 0,
-        "p_value": 0.25
-      },
-      "exact": {
-        "n": 4,
-        "n_paired": 3,
-        "orig_acc": 0.75,
-        "tx_acc": 0.0,
-        "retained": 0.0,
-        "lost": 3,
-        "gained": 0,
-        "p_value": 0.25
-      },
-      "absent": {
-        "n": 4,
-        "n_paired": 4,
-        "orig_acc": 1.0,
-        "tx_acc": 1.0,
-        "retained": 1.0,
-        "lost": 0,
-        "gained": 0,
-        "p_value": 1.0
-      }
-    },
-    "by_focus": {
-      "signatures": {
-        "n": 8,
-        "n_paired": 7,
-        "orig_acc": 0.875,
-        "tx_acc": 0.5,
-        "retained": 0.5714285714285714,
-        "lost": 3,
-        "gained": 0,
-        "p_value": 0.25
-      },
-      "body": {
-        "n": 4,
-        "n_paired": 3,
-        "orig_acc": 0.75,
-        "tx_acc": 0.0,
-        "retained": 0.0,
-        "lost": 3,
-        "gained": 0,
-        "p_value": 0.25
-      }
-    },
-    "promised": {
-      "n": 8,
-      "n_paired": 7,
-      "orig_acc": 0.875,
-      "tx_acc": 0.5,
-      "retained": 0.5714285714285714,
-      "lost": 3,
-      "gained": 0,
-      "p_value": 0.25
-    }
-  },
   "diff_reread": {
     "n": 15,
     "n_paired": 12,
@@ -771,6 +549,228 @@
       "lost": 5,
       "gained": 0,
       "p_value": 0.0625
+    }
+  },
+  "log_filter": {
+    "n": 48,
+    "n_paired": 47,
+    "orig_acc": 0.9791666666666666,
+    "tx_acc": 0.6875,
+    "retained": 0.7021276595744681,
+    "lost": 14,
+    "gained": 0,
+    "p_value": 0.0001220703125,
+    "by_type": {
+      "exact": {
+        "n": 20,
+        "n_paired": 20,
+        "orig_acc": 1.0,
+        "tx_acc": 0.6,
+        "retained": 0.6,
+        "lost": 8,
+        "gained": 0,
+        "p_value": 0.0078125
+      },
+      "number": {
+        "n": 20,
+        "n_paired": 19,
+        "orig_acc": 0.95,
+        "tx_acc": 0.65,
+        "retained": 0.6842105263157895,
+        "lost": 6,
+        "gained": 0,
+        "p_value": 0.03125
+      },
+      "absent": {
+        "n": 8,
+        "n_paired": 8,
+        "orig_acc": 1.0,
+        "tx_acc": 1.0,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      }
+    },
+    "by_focus": {
+      "errors": {
+        "n": 32,
+        "n_paired": 31,
+        "orig_acc": 0.96875,
+        "tx_acc": 0.90625,
+        "retained": 0.9354838709677419,
+        "lost": 2,
+        "gained": 0,
+        "p_value": 0.5
+      },
+      "general": {
+        "n": 16,
+        "n_paired": 16,
+        "orig_acc": 1.0,
+        "tx_acc": 0.25,
+        "retained": 0.25,
+        "lost": 12,
+        "gained": 0,
+        "p_value": 0.00048828125
+      }
+    },
+    "promised": {
+      "n": 32,
+      "n_paired": 31,
+      "orig_acc": 0.96875,
+      "tx_acc": 0.90625,
+      "retained": 0.9354838709677419,
+      "lost": 2,
+      "gained": 0,
+      "p_value": 0.5
+    }
+  },
+  "skeleton": {
+    "n": 20,
+    "n_paired": 16,
+    "orig_acc": 0.8,
+    "tx_acc": 0.65,
+    "retained": 0.75,
+    "lost": 4,
+    "gained": 1,
+    "p_value": 0.375,
+    "by_type": {
+      "exact": {
+        "n": 10,
+        "n_paired": 8,
+        "orig_acc": 0.8,
+        "tx_acc": 0.5,
+        "retained": 0.5,
+        "lost": 4,
+        "gained": 1,
+        "p_value": 0.375
+      },
+      "number": {
+        "n": 5,
+        "n_paired": 3,
+        "orig_acc": 0.6,
+        "tx_acc": 0.6,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      },
+      "absent": {
+        "n": 5,
+        "n_paired": 5,
+        "orig_acc": 1.0,
+        "tx_acc": 1.0,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      }
+    },
+    "by_focus": {
+      "signatures": {
+        "n": 15,
+        "n_paired": 12,
+        "orig_acc": 0.8,
+        "tx_acc": 0.8,
+        "retained": 0.9166666666666666,
+        "lost": 1,
+        "gained": 1,
+        "p_value": 1.0
+      },
+      "body": {
+        "n": 5,
+        "n_paired": 4,
+        "orig_acc": 0.8,
+        "tx_acc": 0.2,
+        "retained": 0.25,
+        "lost": 3,
+        "gained": 0,
+        "p_value": 0.25
+      }
+    },
+    "promised": {
+      "n": 15,
+      "n_paired": 12,
+      "orig_acc": 0.8,
+      "tx_acc": 0.8,
+      "retained": 0.9166666666666666,
+      "lost": 1,
+      "gained": 1,
+      "p_value": 1.0
+    }
+  },
+  "linenum_sparse": {
+    "n": 20,
+    "n_paired": 16,
+    "orig_acc": 0.8,
+    "tx_acc": 0.55,
+    "retained": 0.5625,
+    "lost": 7,
+    "gained": 2,
+    "p_value": 0.1796875,
+    "by_type": {
+      "exact": {
+        "n": 10,
+        "n_paired": 8,
+        "orig_acc": 0.8,
+        "tx_acc": 0.5,
+        "retained": 0.5,
+        "lost": 4,
+        "gained": 1,
+        "p_value": 0.375
+      },
+      "number": {
+        "n": 5,
+        "n_paired": 3,
+        "orig_acc": 0.6,
+        "tx_acc": 0.2,
+        "retained": 0.0,
+        "lost": 3,
+        "gained": 1,
+        "p_value": 0.625
+      },
+      "absent": {
+        "n": 5,
+        "n_paired": 5,
+        "orig_acc": 1.0,
+        "tx_acc": 1.0,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      }
+    },
+    "by_focus": {
+      "signatures": {
+        "n": 15,
+        "n_paired": 12,
+        "orig_acc": 0.8,
+        "tx_acc": 0.7333333333333333,
+        "retained": 0.75,
+        "lost": 3,
+        "gained": 2,
+        "p_value": 1.0
+      },
+      "body": {
+        "n": 5,
+        "n_paired": 4,
+        "orig_acc": 0.8,
+        "tx_acc": 0.0,
+        "retained": 0.0,
+        "lost": 4,
+        "gained": 0,
+        "p_value": 0.125
+      }
+    },
+    "promised": {
+      "n": 20,
+      "n_paired": 16,
+      "orig_acc": 0.8,
+      "tx_acc": 0.55,
+      "retained": 0.5625,
+      "lost": 7,
+      "gained": 2,
+      "p_value": 0.1796875
     }
   }
 }

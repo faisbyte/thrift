@@ -10,6 +10,7 @@ from . import (  # noqa: F401
     linenum,
     log_filter,
     skeleton,
+    tool_input_elide,
     toon,
     whitespace,
 )

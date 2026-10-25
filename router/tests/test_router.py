@@ -204,3 +204,20 @@ def test_decide_returns_none_content_when_unchanged():
     b = Block(("messages", 4, "content", 0), "user", "tool_result", "ok", msg_index=4, tool_name="Bash")
     decision, content = decide(b, classify_block(b), Context(), Policy(transforms=[Squash()]))
     assert decision.transform is None and content is None
+
+
+def test_router_elides_large_assistant_tool_inputs_byte_stably():
+    from reprouter.transforms.tool_input_elide import ToolInputElide
+
+    big = "\n".join(f"row {i} = {i * 7}" for i in range(200))
+    req = claude_code_request()
+    req["messages"][3]["content"] = [{"type": "tool_use", "id": "tu_2", "name": "Write",
+                                      "input": {"file_path": "/work/proj/data.py", "content": big}}]
+    out, decisions = route(req, Policy(transforms=[ToolInputElide()]))
+    assert "row 150" not in out["messages"][3]["content"][0]["input"]["content"]
+    assert out["messages"][3]["content"][0]["input"]["file_path"] == "/work/proj/data.py"
+    assert decision_for(decisions, ("messages", 3, "content", 0)).transform == "tool_input_elide"
+    out2, _ = route(req, Policy(transforms=[ToolInputElide()]))
+    assert out2 == out
+    out3, _ = route(req, Policy(transforms=[ToolInputElide()]), min_msg_index=4)
+    assert out3["messages"][3] == req["messages"][3]

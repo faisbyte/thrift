@@ -9,6 +9,7 @@ content is a plain string.
 from __future__ import annotations
 
 import copy
+import json
 from dataclasses import dataclass, field
 
 Path = tuple
@@ -78,6 +79,7 @@ def parse_blocks(req: dict) -> list[Block]:
             if blk.type == "tool_use":
                 tool_uses[b.get("id", "")] = (b.get("name", ""), b.get("input") or {})
                 blk.tool_name, blk.tool_input, blk.tool_use_id = b.get("name"), b.get("input") or {}, b.get("id")
+                blk.text = json.dumps(blk.tool_input, ensure_ascii=False)
             elif blk.type == "tool_result":
                 blk.tool_use_id = b.get("tool_use_id")
                 blk.tool_name, blk.tool_input = tool_uses.get(blk.tool_use_id or "", (None, {}))
@@ -108,6 +110,8 @@ def apply_replacements(req: dict, replacements: dict) -> dict:
             parent[key] = new
         elif target.get("type") == "tool_result":
             target["content"] = new
+        elif target.get("type") == "tool_use":
+            target["input"] = new
         else:
             target["text"] = new
     return out

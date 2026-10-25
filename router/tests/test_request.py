@@ -78,3 +78,16 @@ def test_apply_replaces_plain_text_block():
 def test_apply_with_no_replacements_returns_equal_copy():
     req = claude_code_request()
     assert apply_replacements(req, {}) == req
+
+
+def test_tool_use_block_text_is_its_input_json():
+    blocks = {b.path: b for b in parse_blocks(claude_code_request())}
+    tu = blocks[("messages", 1, "content", 1)]
+    assert json.loads(tu.text) == {"file_path": "/work/proj/m.py"}
+
+
+def test_apply_replaces_tool_use_input_with_a_dict():
+    req = claude_code_request()
+    out = apply_replacements(req, {("messages", 1, "content", 1): {"file_path": "/work/proj/OTHER.py"}})
+    tu = out["messages"][1]["content"][1]
+    assert tu["input"] == {"file_path": "/work/proj/OTHER.py"} and tu["id"] == "tu_1" and tu["name"] == "Read"

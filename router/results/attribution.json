@@ -1,0 +1,30 @@
+{
+  "tool_use": {
+    "weighted_share": 0.39459183119061325,
+    "raw_tokens": 999540
+  },
+  "tool_result:*": {
+    "weighted_share": 0.34325723945005676,
+    "raw_tokens": 792116
+  },
+  "user_prompt": {
+    "weighted_share": 0.11231209825032416,
+    "raw_tokens": 263105
+  },
+  "(fixed prefix: system + tools)": {
+    "weighted_share": 0.11083192623342279,
+    "raw_tokens": 0
+  },
+  "assistant_text": {
+    "weighted_share": 0.03181746153330453,
+    "raw_tokens": 122887
+  },
+  "thinking": {
+    "weighted_share": 0.0071894433422785165,
+    "raw_tokens": 24512
+  },
+  "image": {
+    "weighted_share": 0.0,
+    "raw_tokens": 0
+  }
+}
