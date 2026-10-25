@@ -64,8 +64,9 @@ def test_collapses_three_or_more_blank_lines_to_one():
     assert res.content == "section one\n\nsection two\n\n\nsection three\n\nsection four\n"
 
 
+# search_results deliberately keep trailing spaces (see test_search_results_keep_trailing_spaces...)
 @pytest.mark.parametrize("kind", ["tool_result:command_output", "tool_result:log", "tool_result:test_output",
-                                  "tool_result:search_results", "tool_result:error"])
+                                  "tool_result:error"])
 def test_applies_to_command_style_results(kind):
     assert run("ok   \n", kind=kind).content == "ok\n"
 
@@ -113,3 +114,22 @@ def test_deterministic_byte_identical_output():
 def test_whitespace_only_lines_count_as_blank_when_collapsing():
     res = run("a\n   \n\t\n  \nb\n")
     assert res.content == "a\n\nb\n"
+
+
+def test_search_results_keep_trailing_spaces_because_they_are_code():
+    from reprouter.classify import Label
+    from reprouter.request import Block
+    from reprouter.transforms.base import Context
+    from reprouter.transforms.whitespace import Whitespace as WhitespaceTransform
+
+    text = "src/a.py:3:    x = 1   \nsrc/a.py:9:\x1b[31mdef f():\x1b[0m  "
+    b = Block(("messages", 1, "content", 0), "user", "tool_result", text, msg_index=1, tool_name="Grep")
+    res = WhitespaceTransform().run(b, Label("tool_result:search_results"), Context())
+    assert res is not None
+    assert res.content == "src/a.py:3:    x = 1   \nsrc/a.py:9:def f():  "
+
+
+def test_whitespace_runs_in_the_cleanup_stage():
+    from reprouter.transforms.whitespace import Whitespace as WhitespaceTransform
+
+    assert WhitespaceTransform.stage == "cleanup"

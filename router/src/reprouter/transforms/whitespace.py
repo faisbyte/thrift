@@ -21,6 +21,7 @@ _KINDS = frozenset({
 class Whitespace(Transform):
     name = "whitespace"
     lossless = True
+    stage = "cleanup"  # runs before the main-stage transform and chains into it
 
     def applicable(self, block, label, ctx: Context) -> bool:
         return block.type == "tool_result" and label.kind in _KINDS and _text_only(block)
@@ -31,7 +32,12 @@ class Whitespace(Transform):
         terminated = len(lines) > 1 and lines[-1] == ""
         if terminated:
             lines.pop()
-        lines = _collapse_blank_runs([_last_overwrite(ln).rstrip(" \t") for ln in lines])
+        # search results are lines of code: trailing whitespace there may be copied into an
+        # Edit's old_string, so only presentation noise (ANSI, CR overwrites) is removed
+        keep_trailing = label.kind == "tool_result:search_results"
+        lines = [_last_overwrite(ln) for ln in lines]
+        if not keep_trailing:
+            lines = _collapse_blank_runs([ln.rstrip(" \t") for ln in lines])
         out = "\n".join(lines) + ("\n" if terminated else "")
         if out == block.text:
             return None
