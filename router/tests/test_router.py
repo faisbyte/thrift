@@ -178,3 +178,29 @@ def test_cleanup_stage_chains_before_main_stage():
     text = out["messages"][4]["content"][0]["content"]
     assert "tests/test_x.py::" not in text and "PASSED" not in text
     assert decision_for(decisions, ("messages", 4, "content", 0)).transform == "cleanup+squash"
+
+
+def test_decide_single_block_matches_route():
+    from reprouter.classify import classify_block
+    from reprouter.request import Block
+    from reprouter.router import decide
+    from reprouter.transforms.base import Context
+
+    b = Block(("messages", 4, "content", 0), "user", "tool_result", PYTEST_LONG, msg_index=4,
+              tool_name="Bash", tool_input={"command": "pytest"})
+    label = classify_block(b, project_root="/work/proj")
+    decision, content = decide(b, label, Context(project_root="/work/proj"), Policy(transforms=[Squash()]))
+    assert decision.transform == "squash" and "PASSED" not in content
+    _, decisions = route(req_with_pytest(), Policy(transforms=[Squash()]))
+    assert decision_for(decisions, ("messages", 4, "content", 0)).tokens_after == decision.tokens_after
+
+
+def test_decide_returns_none_content_when_unchanged():
+    from reprouter.classify import classify_block
+    from reprouter.request import Block
+    from reprouter.router import decide
+    from reprouter.transforms.base import Context
+
+    b = Block(("messages", 4, "content", 0), "user", "tool_result", "ok", msg_index=4, tool_name="Bash")
+    decision, content = decide(b, classify_block(b), Context(), Policy(transforms=[Squash()]))
+    assert decision.transform is None and content is None

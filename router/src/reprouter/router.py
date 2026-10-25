@@ -74,72 +74,72 @@ def _blocked(t: Transform, res: Result, risks: set, policy: Policy) -> str | Non
     return None
 
 
-def route(req: dict, policy: Policy, min_msg_index: int = 0) -> tuple[dict, list[Decision]]:
-    labeled = classify_request(req)
-    root = project_root(req)
-    model = req.get("model", "")
+def decide(block, label, ctx: Context, policy: Policy) -> tuple[Decision, str | list | None]:
+    """Choose a representation for one tool_result block. Returns the decision
+    and the replacement content (None when the block stays as it is)."""
     cleanup = [t for t in policy.transforms if getattr(t, "stage", "main") == "cleanup"]
     main = [t for t in policy.transforms if getattr(t, "stage", "main") != "cleanup"]
+    before = estimate_tokens(block.text)
+    cur = block
+    applied: list[str] = []
+    lossless = True
+    reasons: list[str] = []
+
+    for t in cleanup:
+        res = t.run(cur, label, ctx)
+        if res is None or not res.text_only:
+            continue
+        why = _blocked(t, res, label.risks, policy)
+        if why:
+            reasons.append(why)
+            continue
+        cur = dataclasses.replace(cur, text=res.content)
+        applied.append(t.name)
+        lossless = lossless and t.lossless and res.lossless
+
+    best: tuple[int, Transform, Result] | None = None
+    for t in main:
+        res = t.run(cur, label, ctx)
+        if res is None:
+            continue
+        why = _blocked(t, res, label.risks, policy)
+        if why:
+            reasons.append(why)
+            continue
+        n = content_tokens(res.content)
+        if best is None or n < best[0]:
+            best = (n, t, res)
+
+    if best is not None:
+        final_content, after = best[2].content, best[0]
+        applied.append(best[1].name)
+        lossless = lossless and best[1].lossless and best[2].lossless
+    elif applied:
+        final_content, after = cur.text, estimate_tokens(cur.text)
+    else:
+        return Decision(block.path, label.kind, None, before, before,
+                        reason="; ".join(reasons) or "no applicable transform"), None
+
+    if after > before * (1 - policy.margin):
+        saved = 1 - after / before if before else 0.0
+        return Decision(block.path, label.kind, None, before, before,
+                        reason=f"below margin ({saved:.0%} < {policy.margin:.0%}) for " + "+".join(applied)), None
+    return Decision(block.path, label.kind, "+".join(applied), before, after, lossless), final_content
+
+
+def route(req: dict, policy: Policy, min_msg_index: int = 0) -> tuple[dict, list[Decision]]:
+    labeled = classify_request(req)
+    ctx_root = project_root(req)
+    model = req.get("model", "")
     prior: list = []
     replacements: dict = {}
     decisions: list[Decision] = []
-
     for block, label in labeled:
-        if block.type != "tool_result" or (block.msg_index or 0) < min_msg_index:
-            prior.append((block, label))
-            continue
-        ctx = Context(project_root=root, prior=list(prior), model=model)
-        before = estimate_tokens(block.text)
-        cur = block
-        applied: list[str] = []
-        lossless = True
-        reasons: list[str] = []
-
-        for t in cleanup:
-            res = t.run(cur, label, ctx)
-            if res is None or not res.text_only:
-                continue
-            why = _blocked(t, res, label.risks, policy)
-            if why:
-                reasons.append(why)
-                continue
-            cur = dataclasses.replace(cur, text=res.content)
-            applied.append(t.name)
-            lossless = lossless and t.lossless and res.lossless
-
-        best: tuple[int, Transform, Result] | None = None
-        for t in main:
-            res = t.run(cur, label, ctx)
-            if res is None:
-                continue
-            why = _blocked(t, res, label.risks, policy)
-            if why:
-                reasons.append(why)
-                continue
-            n = content_tokens(res.content)
-            if best is None or n < best[0]:
-                best = (n, t, res)
-
-        if best is not None:
-            final_content, after = best[2].content, best[0]
-            applied.append(best[1].name)
-            lossless = lossless and best[1].lossless and best[2].lossless
-        elif applied:
-            final_content, after = cur.text, estimate_tokens(cur.text)
-        else:
-            decisions.append(Decision(block.path, label.kind, None, before, before,
-                                      reason="; ".join(reasons) or "no applicable transform"))
-            prior.append((block, label))
-            continue
-
-        if after > before * (1 - policy.margin):
-            saved = 1 - after / before if before else 0.0
-            decisions.append(Decision(block.path, label.kind, None, before, before,
-                                      reason=f"below margin ({saved:.0%} < {policy.margin:.0%}) for "
-                                             + "+".join(applied)))
-        else:
-            replacements[block.path] = final_content
-            decisions.append(Decision(block.path, label.kind, "+".join(applied), before, after, lossless))
+        if block.type == "tool_result" and (block.msg_index or 0) >= min_msg_index:
+            ctx = Context(project_root=ctx_root, prior=list(prior), model=model)
+            decision, content = decide(block, label, ctx, policy)
+            decisions.append(decision)
+            if content is not None:
+                replacements[block.path] = content
         prior.append((block, label))
-
     return apply_replacements(req, replacements), decisions

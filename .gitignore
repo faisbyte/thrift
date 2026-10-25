@@ -16,3 +16,4 @@ bench/results/
 # reprouter
 corpus/
 router/.cache/
+.claude/worktrees/
