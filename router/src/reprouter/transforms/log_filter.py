@@ -34,7 +34,9 @@ _SUMMARY = re.compile(
     r"|^(?:PASS|FAIL)$|^(?:ok|FAIL)\s+\S+\s+(?:[\d.]+s|\(cached\))"  # go
 )
 
-FOOTER = "[reprouter: filtered {orig}→{kept} lines (errors/failures kept). Re-run the command to see the full output.]"
+FOOTER = ("[reprouter: filtered {orig}→{kept} lines. Kept: every line mentioning ERROR/FAIL/Exception/Traceback/"
+          "assertions, their context, and summary lines; passing/INFO lines were removed. Re-run the command to see "
+          "the full output.]")
 
 
 class LogFilter(Transform):

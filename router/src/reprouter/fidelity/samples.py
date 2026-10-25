@@ -235,7 +235,8 @@ def bench_path_samples(n: int = 4, seed: int = 0) -> list[Sample]:
 
 # ----------------------------------------------------------------------------- source files
 
-_DEF = re.compile(r"^(\s*)(?:async\s+)?def\s+(\w+)\(.*\):\s*$")
+# single-line definitions, including return annotations: "def f(self, x: int) -> str:"
+_DEF = re.compile(r"^(\s*)(?:async\s+)?def\s+(\w+)\(.*\)\s*(?:->\s*[^:]+)?:\s*$")
 
 
 def _numbered(text: str) -> str:
@@ -255,8 +256,9 @@ def _source_probes(text: str, rng: random.Random, prefix: str) -> list[Probe]:
                             d1[2], focus="signatures"))
         probes.append(Probe(f"{prefix}defline", "number", f"On which line number is function {d2[1]} defined?",
                             str(d2[0]), focus="signatures"))
-    probes.append(Probe(f"{prefix}ntop", "number", "How many top-level functions (def at column 0) are defined?",
-                        str(len(top)), focus="signatures"))
+    if top:  # "0" reads like "not present" to a model; only ask when there is something to count
+        probes.append(Probe(f"{prefix}ntop", "number", "How many top-level functions (def at column 0) are defined?",
+                            str(len(top)), focus="signatures"))
     if body:
         b = rng.choice(body)
         probes.append(Probe(f"{prefix}bodyline", "exact", f"What is the exact text of line {b} (without leading spaces)?",

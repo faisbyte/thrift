@@ -1,0 +1,14 @@
+ledger before: $0.0000 billed
+259 paired probe rows in 466s; ledger now $0.0673
+alias            n= 12 orig=100% tx=100% retained=100% lost=0 gained=0 p=1.000
+csv_table        n= 24 orig=88% tx=88% retained=100% lost=0 gained=0 p=1.000
+dedup            n= 16 orig=100% tx=81% retained=81% lost=3 gained=0 p=0.250
+diff_reread      n= 15 orig=80% tx=47% retained=58% lost=5 gained=0 p=0.062
+image            n= 60 orig=98% tx=82% retained=81% lost=11 gained=1 p=0.006
+json_minify      n= 24 orig=88% tx=88% retained=100% lost=0 gained=0 p=1.000
+linenum_sparse   n= 12 orig=83% tx=58% retained=70% lost=3 gained=0 p=0.250
+log_filter       n= 48 orig=98% tx=71% retained=70% lost=14 gained=1 p=0.001
+skeleton         n= 12 orig=83% tx=33% retained=40% lost=6 gained=0 p=0.031
+toon             n= 24 orig=88% tx=88% retained=100% lost=0 gained=0 p=1.000
+whitespace       n= 12 orig=100% tx=100% retained=100% lost=0 gained=0 p=1.000
+exit=0

@@ -94,3 +94,14 @@ def test_reread_samples_have_a_prior_read(tmp_path):
     assert s.prior[0]["tool_input"] == s.tool_input
     assert s.prior[0]["text"] != s.text  # the file changed between reads
     check_sample(s)
+
+
+def test_annotated_methods_get_signature_probes_and_zero_counts_are_skipped(tmp_path):
+    src = "\n".join(["class A:"] + [line for i in range(6) for line in (
+        f"    def method_{i}(self, x: int) -> str:", f"        return str(x + {i})  # body line {i}", "")])
+    f = tmp_path / "a.py"
+    f.write_text(src)
+    s = source_samples([f])[0]
+    sig = [p for p in s.probes if p.id == "sig"]
+    assert sig and sig[0].answer.endswith("-> str:")
+    assert not any(p.id == "ntop" for p in s.probes)  # there are no top-level functions to count

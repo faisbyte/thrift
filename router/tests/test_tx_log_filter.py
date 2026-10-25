@@ -7,7 +7,7 @@ from reprouter.classify import Label
 from reprouter.request import Block
 from reprouter.transforms.base import Context, get
 
-FOOTER = re.compile(r"\[reprouter: filtered (\d+)→(\d+) lines \(errors/failures kept\)\. "
+FOOTER = re.compile(r"\[reprouter: filtered (\d+)→(\d+) lines\. Kept: every line .*"
                     r"Re-run the command to see the full output\.\]$")
 OMITTED = re.compile(r"^\[… (\d+) lines omitted …\]$")
 
@@ -381,3 +381,10 @@ def test_build_and_test_runner_command_output_is_filtered():
                       + ["error[E0308]: mismatched types", "  --> src/main.rs:14:5", "error: could not compile `app`"])
     for cmd in ("cargo build 2>&1", "cd app && npm run build", "make -j8", "tail -n 500 /var/log/app.log"):
         assert LogFilter().run(_cmd_block(build, cmd), Label("tool_result:command_output"), Context()) is not None, cmd
+
+
+def test_footer_states_that_every_problem_line_was_kept():
+    from reprouter.transforms.log_filter import FOOTER
+
+    text = FOOTER.format(orig=300, kept=20)
+    assert "every" in text and "ERROR" in text and "FAIL" in text and "removed" in text

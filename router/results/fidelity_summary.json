@@ -1,0 +1,776 @@
+{
+  "json_minify": {
+    "n": 24,
+    "n_paired": 21,
+    "orig_acc": 0.875,
+    "tx_acc": 0.875,
+    "retained": 1.0,
+    "lost": 0,
+    "gained": 0,
+    "p_value": 1.0,
+    "by_type": {
+      "exact": {
+        "n": 8,
+        "n_paired": 8,
+        "orig_acc": 1.0,
+        "tx_acc": 1.0,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      },
+      "number": {
+        "n": 12,
+        "n_paired": 9,
+        "orig_acc": 0.75,
+        "tx_acc": 0.75,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      },
+      "absent": {
+        "n": 4,
+        "n_paired": 4,
+        "orig_acc": 1.0,
+        "tx_acc": 1.0,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      }
+    },
+    "by_focus": {
+      "general": {
+        "n": 24,
+        "n_paired": 21,
+        "orig_acc": 0.875,
+        "tx_acc": 0.875,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      }
+    },
+    "promised": {
+      "n": 24,
+      "n_paired": 21,
+      "orig_acc": 0.875,
+      "tx_acc": 0.875,
+      "retained": 1.0,
+      "lost": 0,
+      "gained": 0,
+      "p_value": 1.0
+    }
+  },
+  "csv_table": {
+    "n": 24,
+    "n_paired": 21,
+    "orig_acc": 0.875,
+    "tx_acc": 0.875,
+    "retained": 1.0,
+    "lost": 0,
+    "gained": 0,
+    "p_value": 1.0,
+    "by_type": {
+      "exact": {
+        "n": 8,
+        "n_paired": 8,
+        "orig_acc": 1.0,
+        "tx_acc": 1.0,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      },
+      "number": {
+        "n": 12,
+        "n_paired": 9,
+        "orig_acc": 0.75,
+        "tx_acc": 0.75,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      },
+      "absent": {
+        "n": 4,
+        "n_paired": 4,
+        "orig_acc": 1.0,
+        "tx_acc": 1.0,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      }
+    },
+    "by_focus": {
+      "general": {
+        "n": 24,
+        "n_paired": 21,
+        "orig_acc": 0.875,
+        "tx_acc": 0.875,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      }
+    },
+    "promised": {
+      "n": 24,
+      "n_paired": 21,
+      "orig_acc": 0.875,
+      "tx_acc": 0.875,
+      "retained": 1.0,
+      "lost": 0,
+      "gained": 0,
+      "p_value": 1.0
+    }
+  },
+  "toon": {
+    "n": 24,
+    "n_paired": 21,
+    "orig_acc": 0.875,
+    "tx_acc": 0.875,
+    "retained": 1.0,
+    "lost": 0,
+    "gained": 0,
+    "p_value": 1.0,
+    "by_type": {
+      "exact": {
+        "n": 8,
+        "n_paired": 8,
+        "orig_acc": 1.0,
+        "tx_acc": 1.0,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      },
+      "number": {
+        "n": 12,
+        "n_paired": 9,
+        "orig_acc": 0.75,
+        "tx_acc": 0.75,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      },
+      "absent": {
+        "n": 4,
+        "n_paired": 4,
+        "orig_acc": 1.0,
+        "tx_acc": 1.0,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      }
+    },
+    "by_focus": {
+      "general": {
+        "n": 24,
+        "n_paired": 21,
+        "orig_acc": 0.875,
+        "tx_acc": 0.875,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      }
+    },
+    "promised": {
+      "n": 24,
+      "n_paired": 21,
+      "orig_acc": 0.875,
+      "tx_acc": 0.875,
+      "retained": 1.0,
+      "lost": 0,
+      "gained": 0,
+      "p_value": 1.0
+    }
+  },
+  "image": {
+    "n": 60,
+    "n_paired": 59,
+    "orig_acc": 0.9833333333333333,
+    "tx_acc": 0.8166666666666667,
+    "retained": 0.8135593220338984,
+    "lost": 11,
+    "gained": 1,
+    "p_value": 0.00634765625,
+    "by_type": {
+      "exact": {
+        "n": 24,
+        "n_paired": 24,
+        "orig_acc": 1.0,
+        "tx_acc": 0.7916666666666666,
+        "retained": 0.7916666666666666,
+        "lost": 5,
+        "gained": 0,
+        "p_value": 0.0625
+      },
+      "number": {
+        "n": 24,
+        "n_paired": 23,
+        "orig_acc": 0.9583333333333334,
+        "tx_acc": 0.75,
+        "retained": 0.7391304347826086,
+        "lost": 6,
+        "gained": 1,
+        "p_value": 0.125
+      },
+      "absent": {
+        "n": 12,
+        "n_paired": 12,
+        "orig_acc": 1.0,
+        "tx_acc": 1.0,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      }
+    },
+    "by_focus": {
+      "errors": {
+        "n": 32,
+        "n_paired": 31,
+        "orig_acc": 0.96875,
+        "tx_acc": 0.90625,
+        "retained": 0.9032258064516129,
+        "lost": 3,
+        "gained": 1,
+        "p_value": 0.625
+      },
+      "general": {
+        "n": 28,
+        "n_paired": 28,
+        "orig_acc": 1.0,
+        "tx_acc": 0.7142857142857143,
+        "retained": 0.7142857142857143,
+        "lost": 8,
+        "gained": 0,
+        "p_value": 0.0078125
+      }
+    },
+    "promised": {
+      "n": 60,
+      "n_paired": 59,
+      "orig_acc": 0.9833333333333333,
+      "tx_acc": 0.8166666666666667,
+      "retained": 0.8135593220338984,
+      "lost": 11,
+      "gained": 1,
+      "p_value": 0.00634765625
+    }
+  },
+  "log_filter": {
+    "n": 48,
+    "n_paired": 47,
+    "orig_acc": 0.9791666666666666,
+    "tx_acc": 0.7083333333333334,
+    "retained": 0.7021276595744681,
+    "lost": 14,
+    "gained": 1,
+    "p_value": 0.0009765625,
+    "by_type": {
+      "exact": {
+        "n": 20,
+        "n_paired": 20,
+        "orig_acc": 1.0,
+        "tx_acc": 0.65,
+        "retained": 0.65,
+        "lost": 7,
+        "gained": 0,
+        "p_value": 0.015625
+      },
+      "number": {
+        "n": 20,
+        "n_paired": 19,
+        "orig_acc": 0.95,
+        "tx_acc": 0.65,
+        "retained": 0.631578947368421,
+        "lost": 7,
+        "gained": 1,
+        "p_value": 0.0703125
+      },
+      "absent": {
+        "n": 8,
+        "n_paired": 8,
+        "orig_acc": 1.0,
+        "tx_acc": 1.0,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      }
+    },
+    "by_focus": {
+      "errors": {
+        "n": 32,
+        "n_paired": 31,
+        "orig_acc": 0.96875,
+        "tx_acc": 0.90625,
+        "retained": 0.9032258064516129,
+        "lost": 3,
+        "gained": 1,
+        "p_value": 0.625
+      },
+      "general": {
+        "n": 16,
+        "n_paired": 16,
+        "orig_acc": 1.0,
+        "tx_acc": 0.3125,
+        "retained": 0.3125,
+        "lost": 11,
+        "gained": 0,
+        "p_value": 0.0009765625
+      }
+    },
+    "promised": {
+      "n": 32,
+      "n_paired": 31,
+      "orig_acc": 0.96875,
+      "tx_acc": 0.90625,
+      "retained": 0.9032258064516129,
+      "lost": 3,
+      "gained": 1,
+      "p_value": 0.625
+    }
+  },
+  "whitespace": {
+    "n": 12,
+    "n_paired": 12,
+    "orig_acc": 1.0,
+    "tx_acc": 1.0,
+    "retained": 1.0,
+    "lost": 0,
+    "gained": 0,
+    "p_value": 1.0,
+    "by_type": {
+      "exact": {
+        "n": 4,
+        "n_paired": 4,
+        "orig_acc": 1.0,
+        "tx_acc": 1.0,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      },
+      "number": {
+        "n": 6,
+        "n_paired": 6,
+        "orig_acc": 1.0,
+        "tx_acc": 1.0,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      },
+      "absent": {
+        "n": 2,
+        "n_paired": 2,
+        "orig_acc": 1.0,
+        "tx_acc": 1.0,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      }
+    },
+    "by_focus": {
+      "errors": {
+        "n": 10,
+        "n_paired": 10,
+        "orig_acc": 1.0,
+        "tx_acc": 1.0,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      },
+      "general": {
+        "n": 2,
+        "n_paired": 2,
+        "orig_acc": 1.0,
+        "tx_acc": 1.0,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      }
+    },
+    "promised": {
+      "n": 12,
+      "n_paired": 12,
+      "orig_acc": 1.0,
+      "tx_acc": 1.0,
+      "retained": 1.0,
+      "lost": 0,
+      "gained": 0,
+      "p_value": 1.0
+    }
+  },
+  "dedup": {
+    "n": 16,
+    "n_paired": 16,
+    "orig_acc": 1.0,
+    "tx_acc": 0.8125,
+    "retained": 0.8125,
+    "lost": 3,
+    "gained": 0,
+    "p_value": 0.25,
+    "by_type": {
+      "number": {
+        "n": 8,
+        "n_paired": 8,
+        "orig_acc": 1.0,
+        "tx_acc": 0.625,
+        "retained": 0.625,
+        "lost": 3,
+        "gained": 0,
+        "p_value": 0.25
+      },
+      "exact": {
+        "n": 4,
+        "n_paired": 4,
+        "orig_acc": 1.0,
+        "tx_acc": 1.0,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      },
+      "absent": {
+        "n": 4,
+        "n_paired": 4,
+        "orig_acc": 1.0,
+        "tx_acc": 1.0,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      }
+    },
+    "by_focus": {
+      "general": {
+        "n": 16,
+        "n_paired": 16,
+        "orig_acc": 1.0,
+        "tx_acc": 0.8125,
+        "retained": 0.8125,
+        "lost": 3,
+        "gained": 0,
+        "p_value": 0.25
+      }
+    },
+    "promised": {
+      "n": 16,
+      "n_paired": 16,
+      "orig_acc": 1.0,
+      "tx_acc": 0.8125,
+      "retained": 0.8125,
+      "lost": 3,
+      "gained": 0,
+      "p_value": 0.25
+    }
+  },
+  "alias": {
+    "n": 12,
+    "n_paired": 12,
+    "orig_acc": 1.0,
+    "tx_acc": 1.0,
+    "retained": 1.0,
+    "lost": 0,
+    "gained": 0,
+    "p_value": 1.0,
+    "by_type": {
+      "exact": {
+        "n": 4,
+        "n_paired": 4,
+        "orig_acc": 1.0,
+        "tx_acc": 1.0,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      },
+      "number": {
+        "n": 4,
+        "n_paired": 4,
+        "orig_acc": 1.0,
+        "tx_acc": 1.0,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      },
+      "absent": {
+        "n": 4,
+        "n_paired": 4,
+        "orig_acc": 1.0,
+        "tx_acc": 1.0,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      }
+    },
+    "by_focus": {
+      "general": {
+        "n": 12,
+        "n_paired": 12,
+        "orig_acc": 1.0,
+        "tx_acc": 1.0,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      }
+    },
+    "promised": {
+      "n": 12,
+      "n_paired": 12,
+      "orig_acc": 1.0,
+      "tx_acc": 1.0,
+      "retained": 1.0,
+      "lost": 0,
+      "gained": 0,
+      "p_value": 1.0
+    }
+  },
+  "linenum_sparse": {
+    "n": 12,
+    "n_paired": 10,
+    "orig_acc": 0.8333333333333334,
+    "tx_acc": 0.5833333333333334,
+    "retained": 0.7,
+    "lost": 3,
+    "gained": 0,
+    "p_value": 0.25,
+    "by_type": {
+      "number": {
+        "n": 4,
+        "n_paired": 3,
+        "orig_acc": 0.75,
+        "tx_acc": 0.75,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      },
+      "exact": {
+        "n": 4,
+        "n_paired": 3,
+        "orig_acc": 0.75,
+        "tx_acc": 0.0,
+        "retained": 0.0,
+        "lost": 3,
+        "gained": 0,
+        "p_value": 0.25
+      },
+      "absent": {
+        "n": 4,
+        "n_paired": 4,
+        "orig_acc": 1.0,
+        "tx_acc": 1.0,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      }
+    },
+    "by_focus": {
+      "signatures": {
+        "n": 8,
+        "n_paired": 7,
+        "orig_acc": 0.875,
+        "tx_acc": 0.875,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      },
+      "body": {
+        "n": 4,
+        "n_paired": 3,
+        "orig_acc": 0.75,
+        "tx_acc": 0.0,
+        "retained": 0.0,
+        "lost": 3,
+        "gained": 0,
+        "p_value": 0.25
+      }
+    },
+    "promised": {
+      "n": 12,
+      "n_paired": 10,
+      "orig_acc": 0.8333333333333334,
+      "tx_acc": 0.5833333333333334,
+      "retained": 0.7,
+      "lost": 3,
+      "gained": 0,
+      "p_value": 0.25
+    }
+  },
+  "skeleton": {
+    "n": 12,
+    "n_paired": 10,
+    "orig_acc": 0.8333333333333334,
+    "tx_acc": 0.3333333333333333,
+    "retained": 0.4,
+    "lost": 6,
+    "gained": 0,
+    "p_value": 0.03125,
+    "by_type": {
+      "number": {
+        "n": 4,
+        "n_paired": 3,
+        "orig_acc": 0.75,
+        "tx_acc": 0.0,
+        "retained": 0.0,
+        "lost": 3,
+        "gained": 0,
+        "p_value": 0.25
+      },
+      "exact": {
+        "n": 4,
+        "n_paired": 3,
+        "orig_acc": 0.75,
+        "tx_acc": 0.0,
+        "retained": 0.0,
+        "lost": 3,
+        "gained": 0,
+        "p_value": 0.25
+      },
+      "absent": {
+        "n": 4,
+        "n_paired": 4,
+        "orig_acc": 1.0,
+        "tx_acc": 1.0,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      }
+    },
+    "by_focus": {
+      "signatures": {
+        "n": 8,
+        "n_paired": 7,
+        "orig_acc": 0.875,
+        "tx_acc": 0.5,
+        "retained": 0.5714285714285714,
+        "lost": 3,
+        "gained": 0,
+        "p_value": 0.25
+      },
+      "body": {
+        "n": 4,
+        "n_paired": 3,
+        "orig_acc": 0.75,
+        "tx_acc": 0.0,
+        "retained": 0.0,
+        "lost": 3,
+        "gained": 0,
+        "p_value": 0.25
+      }
+    },
+    "promised": {
+      "n": 8,
+      "n_paired": 7,
+      "orig_acc": 0.875,
+      "tx_acc": 0.5,
+      "retained": 0.5714285714285714,
+      "lost": 3,
+      "gained": 0,
+      "p_value": 0.25
+    }
+  },
+  "diff_reread": {
+    "n": 15,
+    "n_paired": 12,
+    "orig_acc": 0.8,
+    "tx_acc": 0.4666666666666667,
+    "retained": 0.5833333333333334,
+    "lost": 5,
+    "gained": 0,
+    "p_value": 0.0625,
+    "by_type": {
+      "exact": {
+        "n": 6,
+        "n_paired": 4,
+        "orig_acc": 0.6666666666666666,
+        "tx_acc": 0.5,
+        "retained": 0.75,
+        "lost": 1,
+        "gained": 0,
+        "p_value": 1.0
+      },
+      "number": {
+        "n": 6,
+        "n_paired": 5,
+        "orig_acc": 0.8333333333333334,
+        "tx_acc": 0.16666666666666666,
+        "retained": 0.2,
+        "lost": 4,
+        "gained": 0,
+        "p_value": 0.125
+      },
+      "absent": {
+        "n": 3,
+        "n_paired": 3,
+        "orig_acc": 1.0,
+        "tx_acc": 1.0,
+        "retained": 1.0,
+        "lost": 0,
+        "gained": 0,
+        "p_value": 1.0
+      }
+    },
+    "by_focus": {
+      "general": {
+        "n": 6,
+        "n_paired": 6,
+        "orig_acc": 1.0,
+        "tx_acc": 0.6666666666666666,
+        "retained": 0.6666666666666666,
+        "lost": 2,
+        "gained": 0,
+        "p_value": 0.5
+      },
+      "signatures": {
+        "n": 6,
+        "n_paired": 5,
+        "orig_acc": 0.8333333333333334,
+        "tx_acc": 0.5,
+        "retained": 0.6,
+        "lost": 2,
+        "gained": 0,
+        "p_value": 0.5
+      },
+      "body": {
+        "n": 3,
+        "n_paired": 1,
+        "orig_acc": 0.3333333333333333,
+        "tx_acc": 0.0,
+        "retained": 0.0,
+        "lost": 1,
+        "gained": 0,
+        "p_value": 1.0
+      }
+    },
+    "promised": {
+      "n": 15,
+      "n_paired": 12,
+      "orig_acc": 0.8,
+      "tx_acc": 0.4666666666666667,
+      "retained": 0.5833333333333334,
+      "lost": 5,
+      "gained": 0,
+      "p_value": 0.0625
+    }
+  }
+}
