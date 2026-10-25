@@ -48,9 +48,14 @@ def _font(cell: str) -> ImageFont.ImageFont:
     return ImageFont.load(str(base.with_suffix(".pil")))
 
 
+def _latin1(line: str) -> str:
+    """PIL bitmap fonts only cover Latin-1; show anything else as '?' (the factsheet keeps exact strings)."""
+    return line.encode("latin-1", "replace").decode("latin-1")
+
+
 def _wrap(text: str, cols: int) -> list[str]:
     rows: list[str] = []
-    for line in text.expandtabs(TABSIZE).split("\n"):
+    for line in _latin1(text.expandtabs(TABSIZE)).split("\n"):
         if not line:
             rows.append("")
             continue

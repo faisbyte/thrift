@@ -46,7 +46,12 @@ class LogFilter(Transform):
     def applicable(self, block, label, ctx: Context) -> bool:
         if block.type != "tool_result" or label.kind not in _KINDS or not _text_only(block):
             return False
-        return label.kind != "tool_result:command_output" or len(_lines(block.text)) >= COMMAND_MIN_LINES
+        if label.kind != "tool_result:command_output":
+            return True
+        # generic command output: only when the command is a test/build/lint/log runner. File viewers
+        # (cat, sed -n, head, git show, ls, scripts printing files) must never be filtered.
+        return len(_lines(block.text)) >= COMMAND_MIN_LINES and is_runner_command(
+            (block.tool_input or {}).get("command", ""))
 
     def apply(self, block, label, ctx: Context) -> Result | None:
         lines = _lines(block.text)
@@ -59,6 +64,26 @@ class LogFilter(Transform):
         if len(content) > MAX_RATIO * len(block.text):
             return None
         return Result(content=content, lossless=False)
+
+
+_RUNNER = re.compile(
+    r"^(?:python3?\s+-m\s+(?:pytest|unittest|tox|mypy|ruff|pylint|flake8)|py\.test|pytest|tox|nox"
+    r"|(?:npm|pnpm|yarn|bun)\s+(?:test|t|ci|install|run\s+(?:test|build|lint|check|typecheck)\S*)"
+    r"|npx\s+(?:jest|vitest|tsc|eslint|playwright|mocha)|jest|vitest|mocha|tsc|eslint|ruff|mypy|flake8|pylint"
+    r"|go\s+(?:test|build|vet)|cargo\s+(?:test|build|check|clippy|run)|make|cmake|ninja|gradle|\./gradlew|mvn"
+    r"|dotnet\s+(?:test|build)|terraform\s+(?:plan|apply|init|validate)|docker\s+(?:logs|build|compose)"
+    r"|kubectl\s+logs|journalctl|tail\s+.*(?:\.log\b|/log/|-f\b))"
+)
+_ENV_ASSIGN = re.compile(r"^(?:[A-Za-z_][A-Za-z0-9_]*=\S*\s+)+")
+
+
+def is_runner_command(command: str) -> bool:
+    """True if any pipeline/compound segment starts with a test, build, lint or log-viewing runner."""
+    for seg in re.split(r"&&|\|\||;|\||\n", command or ""):
+        seg = _ENV_ASSIGN.sub("", seg.strip())
+        if seg and not seg.startswith("cd ") and _RUNNER.match(seg):
+            return True
+    return False
 
 
 def _lines(text: str) -> list[str]:

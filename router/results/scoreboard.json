@@ -1,0 +1,284 @@
+{
+  "prefix_tokens": 27599,
+  "sessions": 9,
+  "tool_results": 1145,
+  "tool_result_tokens": 777650,
+  "session_weighted": {
+    "api_5m_haiku": 29248226.800000034,
+    "sub_1h_sonnet": 17934918.15000002
+  },
+  "transforms": {
+    "dedup": {
+      "lossless": true,
+      "applied": 1,
+      "tokens_before": 194,
+      "tokens_after": 60,
+      "weighted": {
+        "api_5m_haiku": 1587.9,
+        "sub_1h_sonnet": 978.2
+      },
+      "by_kind": {
+        "tool_result:command_output": {
+          "applied": 1,
+          "before": 194,
+          "after": 60,
+          "saved": 134
+        }
+      },
+      "verdict": false,
+      "reason": "savings too small (0.005% of session cost < 0.10%)"
+    },
+    "alias": {
+      "lossless": true,
+      "applied": 294,
+      "tokens_before": 140740,
+      "tokens_after": 121553,
+      "weighted": {
+        "api_5m_haiku": 185029.4500000002,
+        "sub_1h_sonnet": 118896.85000000008
+      },
+      "by_kind": {
+        "tool_result:search_results": {
+          "applied": 1,
+          "before": 7135,
+          "after": 5864,
+          "saved": 1271
+        },
+        "tool_result:command_output": {
+          "applied": 98,
+          "before": 100588,
+          "after": 88874,
+          "saved": 11714
+        },
+        "tool_result:edit_confirmation": {
+          "applied": 169,
+          "before": 10630,
+          "after": 6922,
+          "saved": 3708
+        },
+        "tool_result:test_output": {
+          "applied": 5,
+          "before": 1974,
+          "after": 1549,
+          "saved": 425
+        },
+        "tool_result:error": {
+          "applied": 16,
+          "before": 11854,
+          "after": 10059,
+          "saved": 1795
+        },
+        "tool_result:json": {
+          "applied": 1,
+          "before": 206,
+          "after": 160,
+          "saved": 46
+        },
+        "tool_result:diff": {
+          "applied": 4,
+          "before": 8353,
+          "after": 8125,
+          "saved": 228
+        }
+      },
+      "verdict": false,
+      "reason": "live delivery needs exact replay of model-written aliases; experimental, off by default"
+    },
+    "json_minify": {
+      "lossless": true,
+      "applied": 1,
+      "tokens_before": 206,
+      "tokens_after": 176,
+      "weighted": {
+        "api_5m_haiku": 205.50000000000003,
+        "sub_1h_sonnet": 144.00000000000003
+      },
+      "by_kind": {
+        "tool_result:json": {
+          "applied": 1,
+          "before": 206,
+          "after": 176,
+          "saved": 30
+        }
+      },
+      "verdict": false,
+      "reason": "savings too small (0.001% of session cost < 0.10%)"
+    },
+    "csv_table": {
+      "lossless": false,
+      "applied": 0,
+      "tokens_before": 0,
+      "tokens_after": 0,
+      "weighted": {
+        "api_5m_haiku": 0.0,
+        "sub_1h_sonnet": 0.0
+      },
+      "by_kind": {},
+      "verdict": false,
+      "reason": "no savings on the corpus (never applied)"
+    },
+    "diff_reread": {
+      "lossless": true,
+      "applied": 0,
+      "tokens_before": 0,
+      "tokens_after": 0,
+      "weighted": {
+        "api_5m_haiku": 0.0,
+        "sub_1h_sonnet": 0.0
+      },
+      "by_kind": {},
+      "verdict": false,
+      "reason": "no savings on the corpus (never applied)"
+    },
+    "image": {
+      "lossless": false,
+      "applied": 15,
+      "tokens_before": 86551,
+      "tokens_after": 48476,
+      "weighted": {
+        "api_5m_haiku": 524938.4500000001,
+        "sub_1h_sonnet": 314822.3500000001
+      },
+      "by_kind": {
+        "tool_result:command_output": {
+          "applied": 14,
+          "before": 80801,
+          "after": 44276,
+          "saved": 36525
+        },
+        "tool_result:file_read": {
+          "applied": 1,
+          "before": 5750,
+          "after": 4200,
+          "saved": 1550
+        }
+      },
+      "verdict": false,
+      "reason": "cannot be delivered live: rewriting a block the model already saw breaks preserved-thinking binding, and new blocks must stay text (recent turns)"
+    },
+    "linenum_compact": {
+      "lossless": true,
+      "applied": 3,
+      "tokens_before": 18909,
+      "tokens_after": 17996,
+      "weighted": {
+        "api_5m_haiku": 17722.75,
+        "sub_1h_sonnet": 10116.75
+      },
+      "by_kind": {
+        "tool_result:file_read": {
+          "applied": 3,
+          "before": 18909,
+          "after": 17996,
+          "saved": 913
+        }
+      },
+      "verdict": false,
+      "reason": "savings too small (0.061% of session cost < 0.10%)"
+    },
+    "linenum_sparse": {
+      "lossless": false,
+      "applied": 3,
+      "tokens_before": 13978,
+      "tokens_after": 12772,
+      "weighted": {
+        "api_5m_haiku": 22875.7,
+        "sub_1h_sonnet": 13096.1
+      },
+      "by_kind": {
+        "tool_result:file_read": {
+          "applied": 3,
+          "before": 13978,
+          "after": 12772,
+          "saved": 1206
+        }
+      },
+      "verdict": false,
+      "reason": "savings too small (0.078% of session cost < 0.10%)"
+    },
+    "log_filter": {
+      "lossless": false,
+      "applied": 65,
+      "tokens_before": 272833,
+      "tokens_after": 21565,
+      "weighted": {
+        "api_5m_haiku": 4251822.700000001,
+        "sub_1h_sonnet": 2471404.8500000006
+      },
+      "by_kind": {
+        "tool_result:command_output": {
+          "applied": 64,
+          "before": 271755,
+          "after": 21001,
+          "saved": 250754
+        },
+        "tool_result:test_output": {
+          "applied": 1,
+          "before": 1078,
+          "after": 564,
+          "saved": 514
+        }
+      },
+      "verdict": false,
+      "reason": "untested fidelity (no probe results)"
+    },
+    "skeleton": {
+      "lossless": false,
+      "applied": 0,
+      "tokens_before": 0,
+      "tokens_after": 0,
+      "weighted": {
+        "api_5m_haiku": 0.0,
+        "sub_1h_sonnet": 0.0
+      },
+      "by_kind": {},
+      "verdict": false,
+      "reason": "no savings on the corpus (never applied)"
+    },
+    "toon": {
+      "lossless": true,
+      "applied": 0,
+      "tokens_before": 0,
+      "tokens_after": 0,
+      "weighted": {
+        "api_5m_haiku": 0.0,
+        "sub_1h_sonnet": 0.0
+      },
+      "by_kind": {},
+      "verdict": false,
+      "reason": "no savings on the corpus (never applied)"
+    },
+    "whitespace": {
+      "lossless": true,
+      "applied": 58,
+      "tokens_before": 85539,
+      "tokens_after": 84558,
+      "weighted": {
+        "api_5m_haiku": 11641.749999999998,
+        "sub_1h_sonnet": 7169.749999999997
+      },
+      "by_kind": {
+        "tool_result:command_output": {
+          "applied": 50,
+          "before": 73846,
+          "after": 73100,
+          "saved": 746
+        },
+        "tool_result:test_output": {
+          "applied": 4,
+          "before": 3800,
+          "after": 3593,
+          "saved": 207
+        },
+        "tool_result:error": {
+          "applied": 4,
+          "before": 7893,
+          "after": 7865,
+          "saved": 28
+        }
+      },
+      "verdict": false,
+      "reason": "savings too small (0.040% of session cost < 0.10%)"
+    }
+  }
+}

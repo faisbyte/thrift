@@ -62,3 +62,23 @@ def test_load_conversations_and_scoreboard_end_to_end(tmp_path):
     run_scoreboard(convs, [Halve()], counter, out_dir=out, transcripts_root=tmp_path / "projects",
                    fidelity={}, lossless_exempt={"halve_m"})
     assert fake.calls == calls  # second run is fully cached
+
+
+def test_prefix_count_skips_server_tools_that_count_tokens_rejects(tmp_path):
+    from reprouter.measure import claude_code_prefix_tokens
+
+    proj = tmp_path / "projects" / "-p"
+    proj.mkdir(parents=True)
+    shape = {"type": "api-request-shape", "shapeHash": "h", "timestamp": "2026-10-25T00:00:00Z", "shape": {
+        "system": [{"type": "text", "text": "You are Claude Code."}],
+        "tools": [{"name": "Bash", "description": "run", "input_schema": {"type": "object"}},
+                  {"type": "advisor_20260301", "name": "advisor", "model": "claude-opus-5-5"}]}}
+    (proj / "s.jsonl").write_text(json.dumps(shape))
+
+    def strict_count(body):
+        if any("type" in t for t in body.get("tools", [])):
+            raise RuntimeError("count_tokens failed: HTTP 400: tools.1: Input tag 'advisor_20260301'")
+        return FakeCount()(body)
+
+    counter = TokenCounter(strict_count, cache_path=tmp_path / "c.jsonl", model="claude-haiku-5-5")
+    assert claude_code_prefix_tokens(counter, tmp_path / "projects") > 0

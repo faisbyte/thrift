@@ -79,3 +79,9 @@ def test_declines_short_text_edit_targets_and_errors():
 def test_declines_non_tool_results():
     b = Block(("messages", 0, "content", 0), "user", "text", LOG, msg_index=0)
     assert ImageTransform().run(b, Label("user_prompt"), Context()) is None
+
+
+def test_non_latin1_characters_do_not_crash_rendering():
+    text = "\n".join(f"✓ step {i} done — café ünïcode 🚀 →" for i in range(400))
+    res = ImageTransform().run(blk(text), Label("tool_result:log"), Context())
+    assert res is not None and any(c["type"] == "image" for c in res.content)

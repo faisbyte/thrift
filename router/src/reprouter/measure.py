@@ -46,7 +46,9 @@ def claude_code_prefix_tokens(counter: TokenCounter, transcripts_root) -> int:
                 latest = (r.get("timestamp", ""), r["shape"])
     if latest is None:
         return 0
-    body = {"system": latest[1].get("system"), "tools": latest[1].get("tools") or [],
+    # server tools (advisor, web search, ...) are rejected by count_tokens; count custom tools only
+    tools = [t for t in latest[1].get("tools") or [] if "type" not in t or t.get("type") == "custom"]
+    body = {"system": latest[1].get("system"), "tools": tools,
             "messages": [{"role": "user", "content": "."}]}
     return max(0, counter.count_request(body) - counter.overhead())
 

@@ -337,3 +337,47 @@ def test_is_lossy_and_deterministic():
     outs = [run(pytest_failing_run()) for _ in range(5)]
     assert outs[0].lossless is False
     assert len({o.content for o in outs}) == 1
+
+
+# --- regression: generic command output must not be filtered unless the command is a test/build/log runner
+
+def _cmd_block(text, command):
+    from reprouter.request import Block
+
+    return Block(("messages", 3, "content", 0), "user", "tool_result", text, msg_index=3, tool_name="Bash",
+                 tool_input={"command": command} if command is not None else {})
+
+
+_CODE_LISTING = "\n".join(
+    f"{i}\tthrow new Error('bad input ' + x{i});" if i % 25 == 0 else f"{i}\tconst value{i} = compute({i});"
+    for i in range(1, 140))
+
+
+def test_file_viewing_commands_are_never_filtered():
+    from reprouter.classify import Label
+    from reprouter.transforms.base import Context
+    from reprouter.transforms.log_filter import LogFilter
+
+    for cmd in ("cat -n app/page.tsx", "sed -n 120,380p app/page.tsx", "head -200 src/x.ts",
+                "git show HEAD:src/x.ts", "ls -la /tmp", "git ls-files | head -200",
+                "python3 - <<'EOF'\nprint(open('x').read())\nEOF"):
+        assert LogFilter().run(_cmd_block(_CODE_LISTING, cmd), Label("tool_result:command_output"), Context()) is None, cmd
+
+
+def test_command_output_without_a_known_command_is_not_filtered():
+    from reprouter.classify import Label
+    from reprouter.transforms.base import Context
+    from reprouter.transforms.log_filter import LogFilter
+
+    assert LogFilter().run(_cmd_block(_CODE_LISTING, None), Label("tool_result:command_output"), Context()) is None
+
+
+def test_build_and_test_runner_command_output_is_filtered():
+    from reprouter.classify import Label
+    from reprouter.transforms.base import Context
+    from reprouter.transforms.log_filter import LogFilter
+
+    build = "\n".join([f"compiling crate_{i} v0.1.{i}" for i in range(120)]
+                      + ["error[E0308]: mismatched types", "  --> src/main.rs:14:5", "error: could not compile `app`"])
+    for cmd in ("cargo build 2>&1", "cd app && npm run build", "make -j8", "tail -n 500 /var/log/app.log"):
+        assert LogFilter().run(_cmd_block(build, cmd), Label("tool_result:command_output"), Context()) is not None, cmd
