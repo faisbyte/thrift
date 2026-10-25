@@ -10,7 +10,9 @@ import hashlib
 import json
 import math
 import os
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -54,6 +56,7 @@ class TokenCounter:
                     e = json.loads(line)
                     self._cache[e["k"]] = e["n"]
         self._overhead: int | None = None
+        self._lock = threading.Lock()
 
     def _key(self, kind: str, payload) -> str:
         blob = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
@@ -61,12 +64,15 @@ class TokenCounter:
 
     def _cached(self, kind: str, payload, body: dict) -> int:
         k = self._key(kind, payload)
-        if k not in self._cache:
-            n = int(self.count_fn(body))
-            self._cache[k] = n
-            self.cache_path.parent.mkdir(parents=True, exist_ok=True)
-            with open(self.cache_path, "a") as f:
-                f.write(json.dumps({"k": k, "n": n}) + "\n")
+        if k in self._cache:
+            return self._cache[k]
+        n = int(self.count_fn(body))
+        with self._lock:
+            if k not in self._cache:
+                self._cache[k] = n
+                self.cache_path.parent.mkdir(parents=True, exist_ok=True)
+                with open(self.cache_path, "a") as f:
+                    f.write(json.dumps({"k": k, "n": n}) + "\n")
         return self._cache[k]
 
     def _user_body(self, content) -> dict:
@@ -83,6 +89,14 @@ class TokenCounter:
 
     def count_text(self, text: str) -> int:
         return self.count_content(text)
+
+    def count_many(self, contents: list, workers: int = 8) -> list[int]:
+        """Count many contents concurrently (warms the cache), in input order."""
+        self.overhead()
+        unique = list({json.dumps(c, sort_keys=True): c for c in contents}.values())
+        with ThreadPoolExecutor(max_workers=workers) as pool:
+            list(pool.map(self.count_content, unique))
+        return [self.count_content(c) for c in contents]
 
     def count_request(self, body: dict) -> int:
         body = {k: v for k, v in body.items() if k in ("model", "system", "tools", "messages", "thinking")}

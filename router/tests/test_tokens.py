@@ -77,3 +77,15 @@ def test_api_client_requires_key_and_never_exposes_it(monkeypatch):
     monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-ant-api03-SECRETVALUE")
     c = AnthropicCountClient()
     assert "SECRETVALUE" not in repr(c) and "SECRETVALUE" not in str(vars(c).get("_repr", ""))
+
+
+def test_count_many_warms_cache_concurrently(tmp_path):
+    api = FakeCountAPI()
+    tc = TokenCounter(api, cache_path=tmp_path / "c.jsonl", model="claude-haiku-5-5")
+    texts = [f"text number {i} " * 20 for i in range(30)] + ["text number 0 " * 20]  # one duplicate
+    counts = tc.count_many(texts, workers=4)
+    assert counts == [tc.count_text(t) for t in texts]
+    calls = api.calls
+    tc.count_many(texts, workers=4)
+    assert api.calls == calls  # all cached now
+    assert len((tmp_path / "c.jsonl").read_text().splitlines()) == 31  # overhead + 30 unique texts
