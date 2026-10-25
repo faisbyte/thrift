@@ -238,7 +238,7 @@ def summarize_proxy_corpus(d: Path) -> dict:
             r = json.loads(line)
             out["proxy_requests"] += 1
             out["proxy_errors"] += int(r.get("status", 200) >= 400)
-            if r.get("request_class", "main") == "main" and r.get("status", 200) < 400:
+            if (r.get("request_class") or "main") == "main" and r.get("status", 200) < 400:
                 last[r.get("session")] = r
     for r in last.values():
         for dec in r.get("decisions") or []:

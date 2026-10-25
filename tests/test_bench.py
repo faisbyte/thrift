@@ -371,3 +371,13 @@ def test_record_bench_spend_writes_billed_cost_to_the_project_ledger(tmp_path):
     from reprouter.spend import Ledger
     L = Ledger(led, cap_usd=3.0)
     assert L.total() == pytest.approx(0.012) and L.unbilled_total() == pytest.approx(0.5)
+
+
+def test_summarize_proxy_corpus_treats_missing_request_class_as_main(tmp_path):
+    # claude -p sends no x-claude-code-request-class header; the proxy records "" and routes it
+    d = tmp_path / "proxy"
+    d.mkdir()
+    row = {"status": 200, "request_class": "", "session": "s",
+           "decisions": [{"transform": "tool_input_elide", "before": 394, "after": 135, "path": [3, 14, 1]}]}
+    (d / "x.jsonl").write_text(json.dumps(row))
+    assert bench_run.summarize_proxy_corpus(d)["router_blocks"] == 1

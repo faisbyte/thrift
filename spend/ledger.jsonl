@@ -1,3 +1,6 @@
 {"ts": 1792930811.966, "kind": "smoke", "desc": "live proxy SSE check (1 tiny Haiku call)", "cost_usd": 0.0001, "billed": true}
 {"ts": 1792931119.268, "kind": "probe", "desc": "fidelity probes: 27 samples, 12 transforms, claude-haiku-5-5", "cost_usd": 0.067202, "billed": true}
 {"ts": 1792931438.872, "kind": "probe", "desc": "fidelity probes: 13 samples, 3 transforms, claude-haiku-5-5", "cost_usd": 0.028766, "billed": true}
+{"ts": 1792967271.271, "kind": "bench", "desc": "e2e run heavy-new-module__router-safe__0", "cost_usd": 0.00703, "billed": true}
+{"ts": 1792967289.234, "kind": "bench", "desc": "e2e run heavy-new-module__base-proxy__0", "cost_usd": 0.003174, "billed": true}
+{"ts": 1792967308.982, "kind": "bench", "desc": "e2e run heavy-new-module__router-elide__0", "cost_usd": 0.003496, "billed": true}

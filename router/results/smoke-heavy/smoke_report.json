@@ -1,0 +1,141 @@
+{
+  "heavy-new-module__base-proxy__0": {
+    "requests": 4,
+    "main_requests": 4,
+    "classes": {
+      "?": 4
+    },
+    "statuses": [
+      200
+    ],
+    "thinking_param": [
+      "{\"display\": \"updates\", \"type\": \"adaptive\"}"
+    ],
+    "assistant_thinking_blocks_in_history": 3,
+    "history_check": {
+      "pairs": 3,
+      "orig_prefix_ok": 3,
+      "routed_prefix_ok": 3,
+      "router_broke": 0
+    },
+    "tokens_original": 74159,
+    "tokens_routed": 74159,
+    "by_transform": {},
+    "arm": "base-proxy",
+    "success": true,
+    "cost_usd": 0.003173895,
+    "num_turns": 6,
+    "input_total": 73987,
+    "output_tokens": 2588,
+    "cache_write_tokens": 9907,
+    "cache_read_tokens": 64072,
+    "reads": 0,
+    "reads_after_write": 0,
+    "edits": 2,
+    "bash_calls": 3,
+    "proxy_errors": 0,
+    "router_blocks": 0,
+    "router_transforms": {},
+    "errors": [],
+    "subtype": "success",
+    "check_tail": "....                                                                     [100%]\n4 passed in 0.01s",
+    "proxy_requests": 4,
+    "router_saved_est": 0
+  },
+  "heavy-new-module__router-elide__0": {
+    "requests": 5,
+    "main_requests": 5,
+    "classes": {
+      "?": 5
+    },
+    "statuses": [
+      200
+    ],
+    "thinking_param": [
+      "{\"display\": \"updates\", \"type\": \"adaptive\"}"
+    ],
+    "assistant_thinking_blocks_in_history": 4,
+    "history_check": {
+      "pairs": 4,
+      "orig_prefix_ok": 4,
+      "routed_prefix_ok": 4,
+      "router_broke": 0
+    },
+    "tokens_original": 101664,
+    "tokens_routed": 101664,
+    "by_transform": {},
+    "arm": "router-elide",
+    "success": true,
+    "cost_usd": 0.00349564,
+    "num_turns": 6,
+    "input_total": 101449,
+    "output_tokens": 2350,
+    "cache_write_tokens": 11350,
+    "cache_read_tokens": 90089,
+    "reads": 0,
+    "reads_after_write": 0,
+    "edits": 2,
+    "bash_calls": 3,
+    "proxy_errors": 0,
+    "router_blocks": 0,
+    "router_transforms": {},
+    "errors": [],
+    "subtype": "success",
+    "check_tail": "....                                                                     [100%]\n4 passed in 0.01s",
+    "proxy_requests": 5,
+    "router_saved_est": 0
+  },
+  "heavy-new-module__router-safe__0": {
+    "requests": 8,
+    "main_requests": 8,
+    "classes": {
+      "?": 8
+    },
+    "statuses": [
+      200
+    ],
+    "thinking_param": [
+      "{\"display\": \"updates\", \"type\": \"adaptive\"}"
+    ],
+    "assistant_thinking_blocks_in_history": 6,
+    "history_check": {
+      "pairs": 7,
+      "orig_prefix_ok": 7,
+      "routed_prefix_ok": 7,
+      "router_broke": 0
+    },
+    "tokens_original": 179408,
+    "tokens_routed": 178110,
+    "by_transform": {
+      "tool_input_elide": {
+        "blocks": 2,
+        "tokens_before": 976,
+        "tokens_after": 321,
+        "token_requests_saved": 1965,
+        "usd_saved": 9.5e-05
+      }
+    },
+    "arm": "router-safe",
+    "success": true,
+    "cost_usd": 0.007030135,
+    "num_turns": 12,
+    "input_total": 177766,
+    "output_tokens": 4520,
+    "cache_write_tokens": 26009,
+    "cache_read_tokens": 151741,
+    "reads": 4,
+    "reads_after_write": 2,
+    "edits": 2,
+    "bash_calls": 5,
+    "proxy_errors": 0,
+    "router_blocks": 2,
+    "router_transforms": {
+      "tool_input_elide": 2
+    },
+    "errors": [],
+    "subtype": "success",
+    "check_tail": "....                                                                     [100%]\n4 passed in 0.01s",
+    "proxy_requests": 8,
+    "router_saved_est": 506
+  }
+}
