@@ -197,3 +197,24 @@ def test_other_endpoints_pass_through(tmp_path):
         assert (await r.json()) == {"input_tokens": 77}
         assert up.seen[0]["path"] == "/v1/messages/count_tokens"
     run(with_proxy(tmp_path, {"mode": "on", "policy": Policy(transforms=[Shout()], margin=0.0)}, go))
+
+
+def test_canary_adds_binding_beta_and_error_mode(tmp_path):
+    async def go(client, up):
+        req = big_bash_request()
+        req["thinking"] = {"type": "adaptive", "display": "omitted"}
+        await (await client.post("/v1/messages", data=json.dumps(req), headers=HEADERS)).read()
+        sent = json.loads(up.seen[0]["body"])
+        assert sent["thinking"]["block_binding"] == {"prefix_mismatch_behavior": "error"}
+        assert sent["thinking"]["display"] == "omitted"
+        beta = up.seen[0]["headers"]["anthropic-beta"]
+        assert "thinking-binding-controls-2026-08-01" in beta and "oauth-2025-04-20" in beta
+    run(with_proxy(tmp_path, {"mode": "on", "policy": Policy(transforms=[]), "canary": True}, go))
+
+
+def test_canary_skips_requests_without_thinking(tmp_path):
+    async def go(client, up):
+        raw = json.dumps(big_bash_request()).encode()
+        await (await client.post("/v1/messages", data=raw, headers=HEADERS)).read()
+        assert "block_binding" not in up.seen[0]["body"].decode()
+    run(with_proxy(tmp_path, {"mode": "on", "policy": Policy(transforms=[]), "canary": True}, go))

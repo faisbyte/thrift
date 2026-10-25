@@ -36,6 +36,7 @@ HOP_BY_HOP = {"connection", "keep-alive", "proxy-authenticate", "proxy-authoriza
               "transfer-encoding", "upgrade", "host", "content-length"}
 SECRET_HEADERS = {"x-api-key", "authorization", "cookie", "proxy-authorization"}
 ROUTED_CLASSES = {"main", "subagent", ""}
+BINDING_BETA = "thinking-binding-controls-2026-08-01"
 _SESSION_RE = re.compile(r"session_([0-9a-fA-F-]{36})")
 
 
@@ -48,6 +49,7 @@ class ProxyConfig:
     corpus_dir: Path = Path("corpus/proxy")
     kill_file: Path = Path(os.path.expanduser("~/.reprouter/off"))
     state_file: Path = Path(os.path.expanduser("~/.reprouter/sessions.json"))
+    canary: bool = False  # test runs: make any history edit fail loudly (preserved-thinking binding)
 
 
 class SessionState:
@@ -152,6 +154,13 @@ class Proxy:
                 out, decisions = raw, []
 
         headers = {k: v for k, v in request.headers.items() if k.lower() not in HOP_BY_HOP}
+        if self.cfg.canary and body is not None and isinstance(body.get("thinking"), dict):
+            canaried = json.loads(out) if out is not raw else dict(body)
+            canaried["thinking"] = {**canaried["thinking"], "block_binding": {"prefix_mismatch_behavior": "error"}}
+            out = json.dumps(canaried, ensure_ascii=False, separators=(",", ":")).encode()
+            key = next((k for k in headers if k.lower() == "anthropic-beta"), "anthropic-beta")
+            betas = [b for b in headers.get(key, "").split(",") if b.strip()]
+            headers[key] = ",".join(betas + ([BINDING_BETA] if BINDING_BETA not in betas else []))
         url = self.cfg.upstream + request.rel_url.path_qs
         assert self.http is not None
         async with self.http.request(request.method, url, data=out, headers=headers) as up:
