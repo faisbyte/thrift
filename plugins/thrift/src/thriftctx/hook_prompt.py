@@ -99,7 +99,7 @@ def main() -> None:
         err = f"{type(e).__name__}: {e}"
         ctx = ""
     _log({"ts": time.time(), "ms": round((time.monotonic() - t0) * 1000, 1), "chars": len(ctx),
-          "fired": bool(ctx), "error": err})
+          "fired": bool(ctx), "error": err, "context": ctx})
     if ctx:
         sys.stdout.write(json.dumps({
             "hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": ctx}

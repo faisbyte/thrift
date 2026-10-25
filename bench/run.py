@@ -161,10 +161,18 @@ def one_run(args, suite: Suite, task: Task, arm: str, rep: int, base: Path, venv
         success, check_tail = judge_answer(task, m["answer"]), ""
     modified = changed_files(workdir)
     hook_entries = [json.loads(x) for x in hook_log.read_text().splitlines()] if hook_log.exists() else []
+    hook_contexts = [e.get("context") or "" for e in hook_entries if e.get("fired")]
+    answered = not timed_out and not m["is_error"] and bool((m["answer"] or "").strip())
 
     rec = {
         "key": key, "task": task.id, "kind": task.kind, "split": task.split, "arm": arm, "rep": rep,
-        "model": args.model, "mode": args.mode, "success": bool(success) and not timed_out and not m["is_error"],
+        "model": args.model, "mode": args.mode,
+        # correct = Q&A regexes matched / edit-task check passed (and the run didn't error out)
+        "success": bool(success) and answered, "correct": bool(success) and answered, "answered": answered,
+        "gold_files": task.gold_files,
+        "hook_context": hook_contexts[0] if hook_contexts else None,
+        # did the hook's pointer line name a file the task actually needs?
+        "hook_gold_hit": any(g in c for g in task.gold_files for c in hook_contexts) if ARMS[arm]["plugin"] else None,
         "timed_out": timed_out, "wall_s": round(wall, 2), "index_s": round(index_s, 2) if index_s else None,
         "check_tail": check_tail, "modified_files": modified,
         "hook_fired": sum(1 for e in hook_entries if e.get("fired")), "hook_calls": len(hook_entries),

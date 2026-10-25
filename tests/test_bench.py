@@ -68,23 +68,83 @@ def test_tasks_file_loads():
             assert t.expect_all or t.expect_any
 
 
-def test_report_paired_ratios(tmp_path):
+def _run(task, kind, arm, rep, correct, cost, inp=10000, out=500, files=5, hook=None, ctx=None, answered=True):
+    return {"key": f"{task}__{arm}__{rep}", "task": task, "kind": kind, "split": "dev", "arm": arm, "rep": rep,
+            "correct": correct, "success": correct, "answered": answered, "cost_usd": cost,
+            "input_tokens": inp // 10, "cache_write_tokens": inp // 2, "cache_read_tokens": inp - inp // 10 - inp // 2,
+            "input_total": inp, "output_tokens": out, "wall_s": 30, "num_turns": 6, "files_read": files,
+            "hook_gold_hit": hook, "hook_context": ctx}
+
+
+def _suite_runs():
     runs = []
-    for task in ("t1", "t2", "t3"):
-        for rep in range(3):
-            runs.append({"key": f"{task}__baseline__{rep}", "task": task, "kind": "qa", "split": "dev",
-                         "arm": "baseline", "rep": rep, "success": True, "cost_usd": 0.10, "input_total": 10000,
-                         "output_tokens": 500, "wall_s": 30, "num_turns": 8, "files_read": 6,
-                         "tool_result_chars_total": 40000, "reads": 6, "reads_ranged": 0})
-            runs.append({"key": f"{task}__thrift__{rep}", "task": task, "kind": "qa", "split": "dev",
-                         "arm": "thrift", "rep": rep, "success": rep != 0, "cost_usd": 0.05, "input_total": 6000,
-                         "output_tokens": 400, "wall_s": 20, "num_turns": 5, "files_read": 2,
-                         "tool_result_chars_total": 10000, "reads": 2, "reads_ranged": 1, "thrift_calls": 2,
-                         "hook_fired": 1})
+    for rep in range(2):
+        # edit task where the hook pointed at the right file: thrift cheaper, both correct
+        runs.append(_run("e-hit", "edit", "baseline", rep, True, 0.20, inp=20000, files=6))
+        runs.append(_run("e-hit", "edit", "thrift", rep, True, 0.10, inp=10000, files=2, hook=True, ctx="a.py L1-2 f"))
+        # edit task where the hook pointed at the wrong file: thrift worse
+        runs.append(_run("e-miss", "edit", "baseline", rep, True, 0.10, inp=10000))
+        runs.append(_run("e-miss", "edit", "thrift", rep, rep == 0, 0.15, inp=15000, hook=False, ctx="z.py L1-2 g"))
+        # qa task, hook silent (also a miss)
+        runs.append(_run("q-1", "qa", "baseline", rep, True, 0.05, inp=5000))
+        runs.append(_run("q-1", "qa", "thrift", rep, False, 0.05, inp=5000, hook=False, ctx=None,
+                         answered=rep == 0))
+    return runs
+
+
+def test_hook_tags():
+    tags = report.task_hook_tags(_suite_runs())
+    assert tags == {"e-hit": "hook_hit", "e-miss": "hook_miss", "q-1": "hook_miss"}
+    # baseline-only task has no hook data
+    assert report.task_hook_tags([_run("b", "qa", "baseline", 0, True, 0.1)]) == {"b": "n/a"}
+
+
+def test_correct_vs_answered_fallbacks():
+    assert report.correct({"success": True}) and not report.correct({"correct": False, "success": True})
+    assert not report.answered({"is_error": True, "answer": "x"})
+    assert report.answered({"answer": "x"}) and not report.answered({"answer": "  "})
+
+
+def test_compare_groups():
+    runs = _suite_runs()
+    edit = report.compare([r for r in runs if r["kind"] == "edit"], "thrift", "cost_usd")
+    assert edit["tasks"] == 2 and edit["arm"]["n"] == 4 and edit["base"]["n"] == 4
+    # mean cost: thrift (0.10+0.15)/2=0.125 vs base (0.20+0.10)/2=0.15 -> -16.7%
+    assert round(edit["cost_change_pct"], 1) == -16.7
+    # success: thrift 3/4 vs base 4/4 -> -25 pp
+    assert edit["success_change_pp"] == -25.0
+    qa = report.compare([r for r in runs if r["kind"] == "qa"], "thrift", "cost_usd")
+    assert qa["cost_change_pct"] == 0 and qa["success_change_pp"] == -100.0
+    overall = report.compare(runs, "thrift", "cost_usd")
+    assert overall["tasks"] == 3
+
+
+def test_render_sections_and_summary():
+    md = report.render(_suite_runs(), {"arms": ["baseline", "thrift"], "repo": {"name": "rich", "sha": "abc"}})
+    for heading in ["## Edit tasks: per task", "## Q&A tasks: per task", "## hook_miss tasks", "## Totals per arm",
+                    "## All runs", "## Summary"]:
+        assert heading in md, heading
+    assert md.rstrip().splitlines()[-1].startswith("| hook_miss tasks only")  # ends with the summary
+    summary = md[md.index("## Summary"):]
+    assert "| Edit tasks | 2 | 4/4 | -17% |" in summary
+    assert "| Q&A tasks | 1 | 2/2 | +0% |" in summary and "-100 pp" in summary
+    assert "| Overall | 3 | 6/6 |" in summary
+    miss = md[md.index("## hook_miss tasks"):md.index("## Totals per arm")]
+    assert "e-miss" in miss and "q-1" in miss and "e-hit" not in miss
+    runs_tbl = md[md.index("## All runs"):md.index("## Summary")]
+    assert "| e-miss__thrift__1 | yes | ✗ |" in runs_tbl and "wrong" in runs_tbl
+    assert "| q-1__thrift__1 | NO | ✗ |" in runs_tbl and "silent" in runs_tbl
+    # per-task row carries all requested columns (cache read/write, turns, files)
+    edit_tbl = md[md.index("## Edit tasks"):md.index("## Q&A tasks")]
+    assert "cache write" in edit_tbl and "cache read" in edit_tbl and "files read" in edit_tbl
+    assert "| e-hit | hook_hit | baseline | 2 | 100% | 0.2000 |" in edit_tbl
+
+
+def test_report_cli_writes_files(tmp_path):
+    runs = _suite_runs()
     (tmp_path / "runs.jsonl").write_text("\n".join(json.dumps(r) for r in runs))
-    p = report.paired(runs, "thrift")
-    g, lo, hi, n = p["summary"]["cost_usd"]
-    assert n == 3 and abs(g - 0.5) < 1e-9
-    md = report.render(runs, {"arms": ["baseline", "thrift"], "repo": {"name": "rich", "sha": "abc"}})
-    assert "| cost $ | -50% |" in md
-    assert "| thrift | 9 | 67% |" in md
+    sys.argv = ["report.py", str(tmp_path)]
+    assert report.main() == 0
+    assert (tmp_path / "summary.md").exists()
+    rows = (tmp_path / "runs.csv").read_text().splitlines()
+    assert len(rows) == len(runs) + 1 and "correct" in rows[0]
