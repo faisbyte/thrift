@@ -86,3 +86,9 @@ def test_render_markdown_contains_table_rows():
     sb = measure([conv(3)], [Halve()], count=count, prefix_tokens=1000)
     md = render_markdown(sb, {"halve": {"retained": 1.0, "n_paired": 3}}, verdicts(sb, {}, lossless_exempt={"halve"}))
     assert "| halve |" in md and "api_5m_haiku" in md
+
+
+def test_verdict_uses_promised_retention_when_available():
+    sb = measure([conv(3)], [Halve()], count=count, prefix_tokens=1000)
+    fid = {"halve": {"retained": 0.5, "n_paired": 40, "promised": {"retained": 0.98, "n_paired": 20}}}
+    assert verdicts(sb, fid, min_share=0.0001, min_retained=0.95)["halve"][0] is True

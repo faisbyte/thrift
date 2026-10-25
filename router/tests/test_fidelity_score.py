@@ -49,3 +49,16 @@ def test_summarize_pairs_only_probes_the_original_got_right():
     assert s["retained"] == pytest.approx(2 / 3)  # of probes the original got right
     assert s["lost"] == 1 and s["gained"] == 1
     assert s["by_type"]["exact"]["retained"] == pytest.approx(0.5)
+
+
+def test_promised_focus_retention():
+    rows = [
+        {"transform": "log_filter", "probe_type": "exact", "focus": "errors", "orig_ok": True, "tx_ok": True},
+        {"transform": "log_filter", "probe_type": "number", "focus": "general", "orig_ok": True, "tx_ok": False},
+        {"transform": "toon", "probe_type": "exact", "focus": "general", "orig_ok": True, "tx_ok": True},
+    ]
+    s = summarize(rows, promises={"log_filter": {"errors"}})
+    assert s["log_filter"]["retained"] == 0.5
+    assert s["log_filter"]["promised"]["retained"] == 1.0 and s["log_filter"]["promised"]["n_paired"] == 1
+    assert s["log_filter"]["by_focus"]["general"]["retained"] == 0.0
+    assert s["toon"]["promised"]["retained"] == 1.0  # no promise: every probe counts

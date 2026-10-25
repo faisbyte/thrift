@@ -63,7 +63,12 @@ def _stats(rows: list[dict]) -> dict:
     }
 
 
-def summarize(rows: list[dict]) -> dict:
+# What each lossy transform promises to keep; its verdict is judged on these probes.
+PROMISES = {"log_filter": {"errors"}, "skeleton": {"signatures"}}
+
+
+def summarize(rows: list[dict], promises: dict | None = None) -> dict:
+    promises = PROMISES if promises is None else promises
     by_t: dict[str, list] = defaultdict(list)
     for r in rows:
         by_t[r["transform"]].append(r)
@@ -71,8 +76,13 @@ def summarize(rows: list[dict]) -> dict:
     for t, rs in by_t.items():
         s = _stats(rs)
         types: dict[str, list] = defaultdict(list)
+        focus: dict[str, list] = defaultdict(list)
         for r in rs:
             types[r["probe_type"]].append(r)
+            focus[r.get("focus", "general")].append(r)
         s["by_type"] = {k: _stats(v) for k, v in types.items()}
+        s["by_focus"] = {k: _stats(v) for k, v in focus.items()}
+        keep = promises.get(t)
+        s["promised"] = _stats([r for r in rs if keep is None or r.get("focus", "general") in keep])
         out[t] = s
     return out

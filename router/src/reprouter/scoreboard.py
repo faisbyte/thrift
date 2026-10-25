@@ -173,8 +173,9 @@ def verdicts(sb: Scoreboard, fidelity: dict, min_share: float = 0.001, min_retai
             if not f:
                 out[name] = (False, "untested fidelity (no probe results)")
                 continue
-            if f["retained"] < min_retained:
-                out[name] = (False, f"fidelity {f['retained']:.0%} < {min_retained:.0%}")
+            judged = f.get("promised", f)  # lossy transforms are judged on what they promise to keep
+            if judged["retained"] < min_retained:
+                out[name] = (False, f"fidelity {judged['retained']:.0%} < {min_retained:.0%} on promised probes")
                 continue
         out[name] = (True, f"saves {share:.2%} of session cost")
     return out
@@ -192,7 +193,12 @@ def render_markdown(sb: Scoreboard, fidelity: dict, verdict: dict) -> str:
         shares = [f"{st.weighted[k] / sb.session_weighted[k]:.2%}" if sb.session_weighted[k] else "–"
                   for k in REGIMES]
         f = fidelity.get(name)
-        fid = f"{f['retained']:.0%} ({f['n_paired']})" if f else "–"
+        if not f:
+            fid = "–"
+        elif "promised" in f and f["promised"]["n_paired"] != f["n_paired"]:
+            fid = f"{f['promised']['retained']:.0%} promised / {f['retained']:.0%} all ({f['n_paired']})"
+        else:
+            fid = f"{f['retained']:.0%} ({f['n_paired']})"
         v = verdict.get(name, (False, ""))
         lines.append(f"| {name} | {'yes' if st.lossless else 'no'} | {st.applied} | "
                      f"{st.tokens_before:,} → {st.tokens_after:,} | {saved:,} | " + " | ".join(shares)
