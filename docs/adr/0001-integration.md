@@ -71,6 +71,12 @@ cost one cache rebuild.
 - Skeletons only apply to reads of files outside the project root, which cannot be edit targets.
 - Aliasing needs the exact bytes the model wrote replayed on later turns. It stays experimental
   and off by default unless the binding canary passes.
+- The measured cost driver turned out to be the model's own tool-call inputs: 39.5% of
+  cache-weighted input cost. `tool_input_elide` rewrites a tool_use input when it first
+  appears in history. The edited bytes come after that message's thinking block, so the
+  thinking that precedes them still sees an unchanged prefix, and every later turn sees the
+  same elided bytes. It is proxy-only. The end-to-end run with the canary on must confirm
+  this before it is enabled.
 - Benchmarks run the router arm through the proxy (`ANTHROPIC_BASE_URL`) and/or with the hook
   installed, so the delivery path itself is measured.
 

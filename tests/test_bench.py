@@ -244,3 +244,44 @@ def test_report_uses_estimated_cost_for_subscription_runs():
     runs[1].update(cost_basis="estimated", est_cost_usd=0.01)
     md = report.render(runs, {"arms": ["baseline", "thrift"], "auth": "subscription"})
     assert "estimated API prices" in md and "| Edit tasks | 1 | 1/1 | -50% |" in md
+
+
+# --------------------------------------------------------------------- reprouter arms
+
+def test_router_arms_route_through_the_proxy():
+    assert bench_run.ARMS["router"]["proxy"] == "on" and bench_run.ARMS["router"]["canary"] is True
+    assert bench_run.ARMS["base-proxy"]["proxy"] == "record"
+    assert bench_run.ARMS["router-hook"]["hook"] is True
+
+
+def test_proxy_cmd(tmp_path):
+    cmd = bench_run.proxy_cmd(47999, "on", tmp_path, canary=True)
+    assert cmd[1:5] == ["-m", "reprouter.cli", "proxy", "--port"] and "47999" in cmd
+    assert cmd[cmd.index("--mode") + 1] == "on" and "--canary" in cmd
+    assert cmd[cmd.index("--state-file") + 1] == str(tmp_path / "proxy-state.json")
+    assert "--canary" not in bench_run.proxy_cmd(47999, "record", tmp_path, canary=False)
+
+
+def test_merge_settings_keeps_api_key_helper_and_adds_hooks():
+    cmd = ["claude", "-p", "x", "--settings", json.dumps({"apiKeyHelper": 'printf %s "$ANTHROPIC_API_KEY"'})]
+    out = bench_run.merge_settings(cmd, bench_run.hook_settings("/py/bin/python"))
+    s = json.loads(out[out.index("--settings") + 1])
+    assert s["apiKeyHelper"].startswith("printf")
+    hook = s["hooks"]["PostToolUse"][0]
+    assert hook["matcher"] == "Bash" and "reprouter.hook" in hook["hooks"][0]["command"]
+    assert out.count("--settings") == 1
+    out2 = bench_run.merge_settings(["claude", "-p", "x"], {"a": 1})
+    assert json.loads(out2[out2.index("--settings") + 1]) == {"a": 1}
+
+
+def test_summarize_proxy_corpus(tmp_path):
+    d = tmp_path / "proxy"
+    d.mkdir()
+    rows = [{"status": 200, "request_class": "main", "decisions": [{"transform": "log_filter", "before": 900, "after": 100}]},
+            {"status": 400, "request_class": "main", "decisions": []},
+            {"status": 200, "request_class": "auxiliary", "decisions": []}]
+    (d / "20261025-abc.jsonl").write_text("\n".join(json.dumps(r) for r in rows))
+    s = bench_run.summarize_proxy_corpus(d)
+    assert s == {"proxy_requests": 3, "proxy_errors": 1, "router_blocks": 1, "router_saved_est": 800,
+                 "router_transforms": {"log_filter": 1}}
+    assert bench_run.summarize_proxy_corpus(tmp_path / "missing")["proxy_requests"] == 0

@@ -2,6 +2,14 @@
 
 **Project-specific code retrieval for Claude Code, built to save tokens.**
 
+> **New: [reprouter](router/README.md)** is a representation router. It picks the cheapest
+> faithful representation for each block of Claude Code context, measured offline with
+> exact token counts and a cache model, and probed for fidelity on Haiku. First-checkpoint
+> results: [router/results/CHECKPOINT.md](router/results/CHECKPOINT.md). Ideas borrowed from
+> [pxpipe](https://github.com/teamchong/pxpipe), [TOON](https://github.com/toon-format/toon),
+> [RTK](https://github.com/rtk-ai/rtk) and
+> [Aider's repo map](https://aider.chat/docs/repomap.html); credits in the reprouter README.
+
 Without help, Claude finds code by grepping and reading whole files. thrift
 indexes your project locally and gives Claude compact pointers and snippets
 instead, so it reads less to find what matters. The repo also includes a

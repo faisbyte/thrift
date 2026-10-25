@@ -193,7 +193,7 @@ def verdicts(sb: Scoreboard, fidelity: dict, min_share: float = 0.001, min_retai
 def render_markdown(sb: Scoreboard, fidelity: dict, verdict: dict) -> str:
     lines = [f"Corpus: {sb.sessions} sessions, {sb.tool_results} tool results, "
              f"{sb.tool_result_tokens:,} tool-result tokens (count_tokens).", "",
-             "| transform | lossless | blocks | tool-result tokens before → after | saved | "
+             "| transform | lossless | blocks | routed tokens before → after | saved | "
              + " | ".join(f"share of session cost ({k})" for k in REGIMES)
              + " | fidelity retained (paired n) | verdict |",
              "|---|---|---|---|---|" + "---|" * len(REGIMES) + "---|---|"]

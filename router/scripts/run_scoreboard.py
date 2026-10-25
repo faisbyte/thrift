@@ -13,6 +13,8 @@ structural = {
     "image": "cannot be delivered live: rewriting a block the model already saw breaks preserved-thinking binding, "
              "and new blocks must stay text (recent turns)",
     "alias": "live delivery needs exact replay of model-written aliases; experimental, off by default",
+    "tool_input_elide": "candidate: needs the end-to-end run (does Claude re-read or fail more? does the binding "
+                        "canary stay green?) before it can be enabled",
 }
 sb = run_scoreboard(convs, list(registry().values()), counter, out_dir="router/results",
                     transcripts_root="~/.claude/projects", fidelity=fid, lossless_exempt=lossless,

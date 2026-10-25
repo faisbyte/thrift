@@ -10,7 +10,7 @@ prompt-cache cost model. Fidelity probes on Haiku measure what each transform lo
 end-to-end benchmark arm runs Claude Code through the router. Any transform that doesn't pay off,
 or loses accuracy, is off by default.
 
-> Status (first checkpoint): core, 12 transforms, proxy, hook adapter, scoreboard and probes
+> Status (first checkpoint): core, 13 transforms, proxy, hook adapter, scoreboard and probes
 > are built and tested. The end-to-end benchmark has **not** been run yet. See
 > [`results/CHECKPOINT.md`](results/CHECKPOINT.md).
 
@@ -87,12 +87,14 @@ Each transform is its own module with its own tests, under `src/reprouter/transf
 | `linenum_compact` | lossless | padded Read line numbers made unpadded |
 | `linenum_sparse` | lossy | line numbers only every 10th line |
 | `image` | lossy | pxpipe-style PNG pages (vendored Spleen font) plus a verbatim factsheet of exact strings |
+| `tool_input_elide` | lossy (proxy only) | the model's own past Write, Edit and Bash-heredoc bodies keep only their first and last lines plus a recovery stub |
 
 ## Measuring it
 
 ```
-uv run python router/scripts_run_scoreboard.py [router/results/fidelity_summary.json]   # free (count_tokens)
-uv run python router/scripts_run_probes.py                                               # paid, ledger-gated
+uv run python router/scripts/run_scoreboard.py [router/results/fidelity_summary.json]   # free (count_tokens)
+uv run python router/scripts/run_probes.py                                               # paid, ledger-gated
+uv run python router/scripts/reprobe.py log_filter,skeleton                              # paid: re-probe some
 uv run python bench/run.py --arms base-proxy,router --tasks edit --repeats 2 --max-cost 1   # paid, ask first
 ```
 
