@@ -3,10 +3,27 @@
 from __future__ import annotations
 
 import json
+import shlex
 from collections import Counter
 from pathlib import Path
 
 THRIFT_TOOL_PREFIX = "mcp__plugin_thrift_thrift__"
+READ_COMMANDS = {"cat", "head", "tail", "sed", "less", "nl"}
+
+
+def _bash_read_paths(command: str) -> list[str]:
+    """File arguments of a simple cat/head/tail/sed read (first command of a pipeline only)."""
+    try:
+        toks = shlex.split(command.split("|")[0].split("&&")[0])
+    except ValueError:
+        return []
+    if not toks or toks[0] not in READ_COMMANDS:
+        return []
+    return [t for t in toks[1:] if not t.startswith("-") and ("/" in t or "." in t)]
+
+
+def _same_file(written: str, path: str) -> bool:
+    return written == path or written.endswith("/" + path.lstrip("./"))
 
 
 def _content_len(content) -> int:
@@ -26,6 +43,8 @@ def parse_stream(lines) -> dict:
     id_to_tool: dict[str, str] = {}
     files_read: set[str] = set()
     reads = reads_ranged = 0
+    written: set[str] = set()
+    reads_after_write = 0
     errors: list[str] = []
     seen_msgs: set[str] = set()
     cw_5m = cw_1h = 0
@@ -62,6 +81,11 @@ def parse_stream(lines) -> dict:
                 tool_calls[name] += 1
                 id_to_tool[block.get("id", "")] = name
                 inp = block.get("input") or {}
+                read_paths = ([inp["file_path"]] if name == "Read" and inp.get("file_path") else
+                              _bash_read_paths(inp.get("command") or "") if name == "Bash" else [])
+                reads_after_write += sum(1 for rp in read_paths if any(_same_file(w, rp) for w in written))
+                if name in ("Write", "Edit", "MultiEdit") and inp.get("file_path"):
+                    written.add(inp["file_path"])
                 if name == "Read":
                     reads += 1
                     if inp.get("file_path"):
@@ -112,6 +136,8 @@ def parse_stream(lines) -> dict:
         "tool_result_chars_total": sum(tool_result_chars.values()),
         "reads": reads,
         "reads_ranged": reads_ranged,
+        # re-reads of files this run already wrote/edited (what tool_input_elide could cause)
+        "reads_after_write": reads_after_write,
         "files_read": len(files_read),
         "files_read_list": sorted(files_read),
         "greps": tool_calls.get("Grep", 0),

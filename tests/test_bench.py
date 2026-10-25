@@ -315,3 +315,59 @@ def test_task_accepts_reference_solution():
 
     t = Task(id="x", kind="edit", prompt="p", check="true", reference=[{"create": "a.py", "content": "1"}])
     assert t.reference[0]["create"] == "a.py"
+
+
+# --------------------------------------------------------------------- smoke-run plumbing
+
+def test_router_smoke_arms_have_fixed_transform_sets():
+    assert bench_run.ARMS["router-elide"]["transforms"] == "tool_input_elide"
+    safe = bench_run.ARMS["router-safe"]["transforms"].split(",")
+    assert safe[0] == "tool_input_elide" and {"log_filter", "whitespace", "json_minify", "toon", "csv_table"} <= set(safe)
+    assert bench_run.ARMS["router-elide"]["canary"] and bench_run.ARMS["router-safe"]["canary"]
+
+
+def test_summarize_proxy_corpus_counts_final_request_not_cumulative(tmp_path):
+    d = tmp_path / "proxy"
+    d.mkdir()
+    dec = lambda n: [{"transform": "tool_input_elide", "before": 1000, "after": 100, "path": [3, i]} for i in range(n)]
+    rows = [{"status": 200, "request_class": "main", "session": "s", "decisions": dec(1)},
+            {"status": 200, "request_class": "main", "session": "s", "decisions": dec(2)},
+            {"status": 200, "request_class": "main", "session": "s", "decisions": dec(2)}]
+    (d / "x.jsonl").write_text("\n".join(json.dumps(r) for r in rows))
+    s = bench_run.summarize_proxy_corpus(d)
+    assert s["router_blocks"] == 2 and s["router_saved_est"] == 1800  # the last request carries every routed block
+    assert s["router_transforms"] == {"tool_input_elide": 2} and s["proxy_requests"] == 3
+
+
+def test_reads_after_write_counts_rereads_of_files_the_model_wrote():
+    from parse_stream import parse_stream
+
+    def use(i, name, inp):
+        return {"type": "assistant", "message": {"id": f"m{i}", "content": [
+            {"type": "tool_use", "id": f"t{i}", "name": name, "input": inp}]}}
+
+    ev = [use(1, "Write", {"file_path": "/w/rich/_stats.py", "content": "x"}),
+          use(2, "Read", {"file_path": "/w/rich/other.py"}),
+          use(3, "Read", {"file_path": "/w/rich/_stats.py"}),
+          use(4, "Edit", {"file_path": "/w/rich/other.py", "old_string": "a", "new_string": "b"}),
+          use(5, "Bash", {"command": "cat rich/other.py"}),
+          use(6, "Read", {"file_path": "/w/rich/_stats.py", "offset": 3}),
+          {"type": "result", "usage": {}, "modelUsage": {}}]
+    m = parse_stream(json.dumps(e) for e in ev)
+    assert m["reads_after_write"] == 3  # _stats.py twice, other.py once via cat; the first other.py read came before its Edit
+
+
+def test_per_run_budget_splits_what_is_left_of_max_cost():
+    assert bench_run.per_run_budget(2.0, None, 0.0, 3) == 2.0
+    assert bench_run.per_run_budget(2.0, 0.10, 0.01, 3) == pytest.approx(0.03)
+    assert bench_run.per_run_budget(0.02, 0.10, 0.0, 1) == 0.02
+
+
+def test_record_bench_spend_writes_billed_cost_to_the_project_ledger(tmp_path):
+    led = tmp_path / "ledger.jsonl"
+    bench_run.record_bench_spend(led, {"key": "t__router-elide__0", "cost_usd": 0.012}, "api-key")
+    bench_run.record_bench_spend(led, {"key": "t__baseline__0", "est_cost_usd": 0.5,
+                                       "cost_basis": "estimated"}, "subscription")
+    from reprouter.spend import Ledger
+    L = Ledger(led, cap_usd=3.0)
+    assert L.total() == pytest.approx(0.012) and L.unbilled_total() == pytest.approx(0.5)

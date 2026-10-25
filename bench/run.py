@@ -64,7 +64,15 @@ ARMS = {
     "base-proxy": {"plugin": False, "proxy": "record"},
     "router": {"plugin": False, "proxy": "on", "canary": True},
     "router-hook": {"plugin": False, "proxy": "record", "hook": True},
+    # smoke-run arms with fixed transform sets (ignore --router-transforms)
+    "router-elide": {"plugin": False, "proxy": "on", "canary": True, "transforms": "tool_input_elide"},
+    "router-safe": {"plugin": False, "proxy": "on", "canary": True,
+                    "transforms": "tool_input_elide,log_filter,whitespace,json_minify,toon,csv_table"},
 }
+# reprouter's project-wide spend ledger ($3 cap); a run is refused unless this much headroom is left
+SPEND_LEDGER = REPO_ROOT / "spend" / "ledger.jsonl"
+SPEND_CAP_USD = 3.0
+RUN_COST_GUARD_USD = 0.05
 ROUTER_SRC = REPO_ROOT / "router" / "src"
 
 # Same permissions for every arm. Bash is limited to what the tasks need.
@@ -154,6 +162,26 @@ def run_cost(rec: dict) -> float:
     return rec.get("cost_usd") or rec.get("est_cost_usd") or 0.0
 
 
+def per_run_budget(max_budget_usd: float, max_cost: float | None, spent: float, runs_left: int) -> float:
+    """Claude Code's own --max-budget-usd for the next run: no more than an equal share of what is
+    left under --max-cost, so one runaway run cannot blow the batch cap."""
+    if max_cost is None:
+        return max_budget_usd
+    return min(max_budget_usd, max(max_cost - spent, 0.0) / max(runs_left, 1))
+
+
+def _ledger(path: Path):
+    if str(ROUTER_SRC) not in sys.path:
+        sys.path.insert(0, str(ROUTER_SRC))
+    from reprouter.spend import Ledger
+
+    return Ledger(path, cap_usd=SPEND_CAP_USD)
+
+
+def record_bench_spend(path: Path, rec: dict, auth: str) -> None:
+    _ledger(path).record("bench", f"e2e run {rec['key']}", run_cost(rec), billed=auth == "api-key")
+
+
 def claude_cmd(args, arm: str, prompt: str) -> list[str]:
     cfg = ARMS[arm]
     cmd = [args.claude_bin, "-p", prompt, "--output-format", "stream-json", "--verbose",
@@ -196,10 +224,13 @@ def merge_settings(cmd: list[str], extra: dict) -> list[str]:
 
 
 def summarize_proxy_corpus(d: Path) -> dict:
+    """Routing is sticky, so each request re-applies every earlier decision. Block counts come from
+    the last successful main request of each session (it carries them all); errors count over all."""
     out = {"proxy_requests": 0, "proxy_errors": 0, "router_blocks": 0, "router_saved_est": 0,
            "router_transforms": {}}
     if not Path(d).is_dir():
         return out
+    last: dict = {}
     for f in sorted(Path(d).glob("*.jsonl")):
         for line in f.read_text().splitlines():
             if not line.strip():
@@ -207,10 +238,13 @@ def summarize_proxy_corpus(d: Path) -> dict:
             r = json.loads(line)
             out["proxy_requests"] += 1
             out["proxy_errors"] += int(r.get("status", 200) >= 400)
-            for dec in r.get("decisions") or []:
-                out["router_blocks"] += 1
-                out["router_saved_est"] += dec.get("before", 0) - dec.get("after", 0)
-                out["router_transforms"][dec["transform"]] = out["router_transforms"].get(dec["transform"], 0) + 1
+            if r.get("request_class", "main") == "main" and r.get("status", 200) < 400:
+                last[r.get("session")] = r
+    for r in last.values():
+        for dec in r.get("decisions") or []:
+            out["router_blocks"] += 1
+            out["router_saved_est"] += dec.get("before", 0) - dec.get("after", 0)
+            out["router_transforms"][dec["transform"]] = out["router_transforms"].get(dec["transform"], 0) + 1
     return out
 
 
@@ -222,7 +256,7 @@ def _start_proxy(args, arm: str, run_dir: Path):
         port = sk.getsockname()[1]
     env = {k: v for k, v in os.environ.items() if not k.startswith("CLAUDE")}
     env["PYTHONPATH"] = os.pathsep.join([str(ROUTER_SRC), str(PLUGIN_DIR / "src")])
-    env["REPROUTER_TRANSFORMS"] = args.router_transforms
+    env["REPROUTER_TRANSFORMS"] = ARMS[arm].get("transforms", args.router_transforms)
     env["REPROUTER_KILL_FILE"] = str(run_dir / "reprouter-off")
     log = open(run_dir / "proxy.log", "w")
     proc = subprocess.Popen(proxy_cmd(port, ARMS[arm]["proxy"], run_dir, ARMS[arm].get("canary", False)),
@@ -289,7 +323,7 @@ def one_run(args, suite: Suite, task: Task, arm: str, rep: int, base: Path, venv
     if ARMS[arm].get("hook"):
         cmd = merge_settings(cmd, hook_settings(sys.executable))
         env["PYTHONPATH"] = os.pathsep.join([str(ROUTER_SRC), str(PLUGIN_DIR / "src")])
-        env["REPROUTER_TRANSFORMS"] = args.router_transforms
+        env["REPROUTER_TRANSFORMS"] = ARMS[arm].get("transforms", args.router_transforms)
         env["REPROUTER_HOOK_LOG"] = str(run_dir / "reprouter-hook.jsonl")
     if ARMS[arm].get("proxy"):
         proxy, port = _start_proxy(args, arm, run_dir)
@@ -511,6 +545,7 @@ def main() -> int:
             plan.extend((t, a, rep) for a in arms)
 
     total = len(plan)
+    base_budget = args.max_budget_usd
     print(f"{total} runs ({len(tasks)} tasks x {len(args.arms)} arms x {repeats} repeats) -> {out_dir}")
     for i, (t, arm, rep) in enumerate(plan, 1):
         key = f"{t.id}__{arm}__{rep}"
@@ -520,6 +555,10 @@ def main() -> int:
             print(f"--max-cost ${args.max_cost:.2f} reached (spent ${spent:.3f}); not starting the remaining "
                   f"runs. Partial results kept in {runs_path}")
             break
+        if args.auth == "api-key":
+            _ledger(SPEND_LEDGER).guard(RUN_COST_GUARD_USD)  # raises BudgetExceeded near the $3 project cap
+        args.max_budget_usd = per_run_budget(base_budget, args.max_cost, spent,
+                                             sum(1 for x in plan[i - 1:] if f"{x[0].id}__{x[1]}__{x[2]}" not in done))
         try:
             rec = one_run(args, suite, t, arm, rep, base, venv, out_dir)
         except Exception as e:  # keep going; record the failure
@@ -527,6 +566,7 @@ def main() -> int:
                    "success": False, "errors": [f"harness: {type(e).__name__}: {e}"]}
         with open(runs_path, "a") as f:
             f.write(json.dumps(rec) + "\n")
+        record_bench_spend(SPEND_LEDGER, rec, args.auth)
         spent += run_cost(rec)
         print(f"[{i}/{total}] {key:45} correct={rec.get('success')} in={rec.get('input_total')} "
               f"out={rec.get('output_tokens')} ${run_cost(rec):.3f} (total ${spent:.2f}) "
