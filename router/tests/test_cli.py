@@ -24,3 +24,15 @@ def test_unknown_command_is_an_error(capsys):
         main(["nope"])
     except SystemExit as e:
         assert e.code != 0
+
+
+def test_proxy_options_flow_into_config(tmp_path, monkeypatch):
+    from reprouter.cli import build_parser, _proxy_config
+
+    monkeypatch.setenv("REPROUTER_TRANSFORMS", "whitespace,log_filter")
+    args = build_parser().parse_args(["proxy", "--port", "1234", "--mode", "record", "--canary",
+                                      "--state-file", str(tmp_path / "s.json"), "--corpus-dir", str(tmp_path / "c")])
+    cfg = _proxy_config(args)
+    assert cfg.mode == "record" and cfg.canary is True
+    assert str(cfg.state_file) == str(tmp_path / "s.json") and str(cfg.corpus_dir) == str(tmp_path / "c")
+    assert [t.name for t in cfg.policy.transforms] == ["whitespace", "log_filter"]

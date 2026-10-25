@@ -58,7 +58,14 @@ ARMS = {
     "thrift": {"plugin": True},
     "hook-only": {"plugin": True, "disallow": [THRIFT_SERVER_RULE]},
     "mcp-only": {"plugin": True, "env": {"THRIFT_HOOK": "0"}},
+    # reprouter arms: every request goes through the local proxy (record mode = no transforms, but
+    # exact bodies + usage are captured); "router" applies the enabled transforms with the
+    # preserved-thinking canary on, so any accidental history edit fails loudly.
+    "base-proxy": {"plugin": False, "proxy": "record"},
+    "router": {"plugin": False, "proxy": "on", "canary": True},
+    "router-hook": {"plugin": False, "proxy": "record", "hook": True},
 }
+ROUTER_SRC = REPO_ROOT / "router" / "src"
 
 # Same permissions for every arm. Bash is limited to what the tasks need.
 ALLOWED_TOOLS = [
@@ -166,6 +173,71 @@ def claude_cmd(args, arm: str, prompt: str) -> list[str]:
     return cmd
 
 
+def proxy_cmd(port: int, mode: str, run_dir: Path, canary: bool) -> list[str]:
+    cmd = [sys.executable, "-m", "reprouter.cli", "proxy", "--port", str(port), "--mode", mode,
+           "--corpus-dir", str(run_dir / "proxy"), "--state-file", str(run_dir / "proxy-state.json")]
+    return cmd + (["--canary"] if canary else [])
+
+
+def hook_settings(python: str) -> dict:
+    return {"hooks": {"PostToolUse": [{"matcher": "Bash", "hooks": [
+        {"type": "command", "command": f'"{python}" -m reprouter.hook', "timeout": 30}]}]}}
+
+
+def merge_settings(cmd: list[str], extra: dict) -> list[str]:
+    """Merge ``extra`` into the command's --settings JSON (adding the flag if absent)."""
+    cmd = list(cmd)
+    if "--settings" in cmd:
+        i = cmd.index("--settings") + 1
+        cmd[i] = json.dumps({**json.loads(cmd[i]), **extra})
+    else:
+        cmd += ["--settings", json.dumps(extra)]
+    return cmd
+
+
+def summarize_proxy_corpus(d: Path) -> dict:
+    out = {"proxy_requests": 0, "proxy_errors": 0, "router_blocks": 0, "router_saved_est": 0,
+           "router_transforms": {}}
+    if not Path(d).is_dir():
+        return out
+    for f in sorted(Path(d).glob("*.jsonl")):
+        for line in f.read_text().splitlines():
+            if not line.strip():
+                continue
+            r = json.loads(line)
+            out["proxy_requests"] += 1
+            out["proxy_errors"] += int(r.get("status", 200) >= 400)
+            for dec in r.get("decisions") or []:
+                out["router_blocks"] += 1
+                out["router_saved_est"] += dec.get("before", 0) - dec.get("after", 0)
+                out["router_transforms"][dec["transform"]] = out["router_transforms"].get(dec["transform"], 0) + 1
+    return out
+
+
+def _start_proxy(args, arm: str, run_dir: Path):
+    import socket
+
+    with socket.socket() as sk:
+        sk.bind(("127.0.0.1", 0))
+        port = sk.getsockname()[1]
+    env = {k: v for k, v in os.environ.items() if not k.startswith("CLAUDE")}
+    env["PYTHONPATH"] = os.pathsep.join([str(ROUTER_SRC), str(PLUGIN_DIR / "src")])
+    env["REPROUTER_TRANSFORMS"] = args.router_transforms
+    env["REPROUTER_KILL_FILE"] = str(run_dir / "reprouter-off")
+    log = open(run_dir / "proxy.log", "w")
+    proc = subprocess.Popen(proxy_cmd(port, ARMS[arm]["proxy"], run_dir, ARMS[arm].get("canary", False)),
+                            env=env, stdout=log, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL)
+    deadline = time.monotonic() + 15
+    while time.monotonic() < deadline:
+        try:
+            with socket.create_connection(("127.0.0.1", port), timeout=0.5):
+                return proc, port
+        except OSError:
+            time.sleep(0.2)
+    proc.terminate()
+    raise RuntimeError("reprouter proxy did not start (see proxy.log)")
+
+
 def claude_env(args, arm: str, venv: Path, hook_log: Path) -> dict:
     env = bench_env(venv, ARMS[arm].get("env"))
     # Drop session variables inherited when the bench is launched from inside a
@@ -212,14 +284,29 @@ def one_run(args, suite: Suite, task: Task, arm: str, rep: int, base: Path, venv
     prompt = task.full_prompt(suite.defaults)
     hook_log = run_dir / "hook.jsonl"
     cmd = claude_cmd(args, arm, prompt)
+    env = claude_env(args, arm, venv, hook_log)
+    proxy = None
+    if ARMS[arm].get("hook"):
+        cmd = merge_settings(cmd, hook_settings(sys.executable))
+        env["PYTHONPATH"] = os.pathsep.join([str(ROUTER_SRC), str(PLUGIN_DIR / "src")])
+        env["REPROUTER_TRANSFORMS"] = args.router_transforms
+        env["REPROUTER_HOOK_LOG"] = str(run_dir / "reprouter-hook.jsonl")
+    if ARMS[arm].get("proxy"):
+        proxy, port = _start_proxy(args, arm, run_dir)
+        env["ANTHROPIC_BASE_URL"] = f"http://127.0.0.1:{port}"
     t0 = time.monotonic()
     timed_out = False
-    with open(run_dir / "stream.jsonl", "w") as out, open(run_dir / "stderr.txt", "w") as err:
-        try:
-            subprocess.run(cmd, cwd=workdir, env=claude_env(args, arm, venv, hook_log), stdout=out, stderr=err,
-                           stdin=subprocess.DEVNULL, timeout=args.timeout)
-        except subprocess.TimeoutExpired:
-            timed_out = True
+    try:
+        with open(run_dir / "stream.jsonl", "w") as out, open(run_dir / "stderr.txt", "w") as err:
+            try:
+                subprocess.run(cmd, cwd=workdir, env=env, stdout=out, stderr=err,
+                               stdin=subprocess.DEVNULL, timeout=args.timeout)
+            except subprocess.TimeoutExpired:
+                timed_out = True
+    finally:
+        if proxy is not None:
+            proxy.terminate()
+            proxy.wait(timeout=10)
     wall = time.monotonic() - t0
 
     m = parse_file(run_dir / "stream.jsonl")
@@ -247,6 +334,7 @@ def one_run(args, suite: Suite, task: Task, arm: str, rep: int, base: Path, venv
         "check_tail": check_tail, "modified_files": modified,
         "hook_fired": sum(1 for e in hook_entries if e.get("fired")), "hook_calls": len(hook_entries),
         **{k: v for k, v in m.items() if not k.startswith("init_") and k != "model_usage"},
+        **(summarize_proxy_corpus(run_dir / "proxy") if ARMS[arm].get("proxy") else {}),
         "plugins_loaded": [p.get("name") for p in m["init_plugins"]] if m["init_plugins"] else [],
         "plugin_errors": m["init_plugin_errors"],
     }
@@ -334,6 +422,8 @@ def main() -> int:
     ap.add_argument("--repeats", type=int, default=5)
     ap.add_argument("--quick", action="store_true", help=f"{len(QUICK_TASKS)} tasks x 2 repeats")
     ap.add_argument("--model", default="haiku", help="Claude Code model alias or id (default: haiku)")
+    ap.add_argument("--router-transforms", default=None,
+                    help="comma list for the router arms (default: router/results/defaults.json 'enabled')")
     ap.add_argument("--auth", choices=["auto", "api-key", "subscription"], default="auto")
     ap.add_argument("--max-cost", type=float,
                     help="stop starting new runs once total cost in this results dir reaches this many USD "
@@ -357,6 +447,12 @@ def main() -> int:
 
     suite = load_suite(args.tasks_file)
     args.arms = [a.strip() for a in args.arms.split(",") if a.strip()]
+    if args.router_transforms is None:
+        try:
+            args.router_transforms = ",".join(json.loads(
+                (REPO_ROOT / "router" / "results" / "defaults.json").read_text())["enabled"])
+        except (OSError, ValueError, KeyError):
+            args.router_transforms = ""
     unknown = [a for a in args.arms if a not in ARMS]
     if unknown:
         sys.exit(f"unknown arms: {unknown}")

@@ -39,8 +39,10 @@ def _proxy_config(args):
     from .config import build_policy
     from .proxy.server import ProxyConfig
 
+    kw = {"state_file": Path(args.state_file)} if getattr(args, "state_file", None) else {}
     return ProxyConfig(upstream=args.upstream, mode=args.mode, policy=build_policy(),
-                       corpus_dir=Path(args.corpus_dir), kill_file=kill_file())
+                       corpus_dir=Path(args.corpus_dir), kill_file=kill_file(),
+                       canary=bool(getattr(args, "canary", False)), **kw)
 
 
 def _serve(cfg, port: int, ready: threading.Event | None = None) -> None:
@@ -61,10 +63,7 @@ def _serve(cfg, port: int, ready: threading.Event | None = None) -> None:
     asyncio.run(go())
 
 
-def main(argv: list[str] | None = None) -> int:
-    from .tokens import load_dotenv
-
-    load_dotenv()
+def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(prog="reprouter")
     sub = ap.add_subparsers(dest="cmd", required=True)
     for name in ("proxy", "run"):
@@ -74,10 +73,21 @@ def main(argv: list[str] | None = None) -> int:
                        choices=["off", "passthrough", "record", "on"])
         p.add_argument("--upstream", default=os.environ.get("REPROUTER_UPSTREAM", "https://api.anthropic.com"))
         p.add_argument("--corpus-dir", default=os.environ.get("REPROUTER_CORPUS", "corpus/proxy"))
+        p.add_argument("--state-file", default=os.environ.get("REPROUTER_STATE"))
+        p.add_argument("--canary", action="store_true",
+                       help="test runs: make any history edit fail loudly (preserved-thinking binding)")
         if name == "run":
             p.add_argument("command", nargs=argparse.REMAINDER)
     for name in ("off", "on", "status", "hook"):
         sub.add_parser(name)
+    return ap
+
+
+def main(argv: list[str] | None = None) -> int:
+    from .tokens import load_dotenv
+
+    load_dotenv()
+    ap = build_parser()
     args = ap.parse_args(argv)
 
     if args.cmd == "off":

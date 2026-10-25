@@ -1,11 +1,11 @@
 {
   "prefix_tokens": 27599,
   "sessions": 9,
-  "tool_results": 1145,
-  "tool_result_tokens": 777650,
+  "tool_results": 1152,
+  "tool_result_tokens": 780980,
   "session_weighted": {
-    "api_5m_haiku": 29248226.800000034,
-    "sub_1h_sonnet": 17934918.15000002
+    "api_5m_haiku": 29703441.400000025,
+    "sub_1h_sonnet": 18173599.7
   },
   "transforms": {
     "dedup": {
@@ -14,8 +14,8 @@
       "tokens_before": 194,
       "tokens_after": 60,
       "weighted": {
-        "api_5m_haiku": 1587.9,
-        "sub_1h_sonnet": 978.2
+        "api_5m_haiku": 1681.7,
+        "sub_1h_sonnet": 1025.1000000000001
       },
       "by_kind": {
         "tool_result:command_output": {
@@ -26,16 +26,16 @@
         }
       },
       "verdict": false,
-      "reason": "savings too small (0.005% of session cost < 0.10%)"
+      "reason": "savings too small (0.006% of session cost < 0.10%)"
     },
     "alias": {
       "lossless": true,
-      "applied": 294,
-      "tokens_before": 140740,
-      "tokens_after": 121553,
+      "applied": 295,
+      "tokens_before": 141751,
+      "tokens_after": 122528,
       "weighted": {
-        "api_5m_haiku": 185029.4500000002,
-        "sub_1h_sonnet": 118896.85000000008
+        "api_5m_haiku": 188240.45000000007,
+        "sub_1h_sonnet": 120551.85000000005
       },
       "by_kind": {
         "tool_result:search_results": {
@@ -45,10 +45,10 @@
           "saved": 1271
         },
         "tool_result:command_output": {
-          "applied": 98,
-          "before": 100588,
-          "after": 88874,
-          "saved": 11714
+          "applied": 99,
+          "before": 101599,
+          "after": 89849,
+          "saved": 11750
         },
         "tool_result:edit_confirmation": {
           "applied": 169,
@@ -132,19 +132,19 @@
     },
     "image": {
       "lossless": false,
-      "applied": 15,
-      "tokens_before": 86551,
-      "tokens_after": 48476,
+      "applied": 22,
+      "tokens_before": 134162,
+      "tokens_after": 84691,
       "weighted": {
-        "api_5m_haiku": 524938.4500000001,
-        "sub_1h_sonnet": 314822.3500000001
+        "api_5m_haiku": 760010.4500000001,
+        "sub_1h_sonnet": 448027.85000000003
       },
       "by_kind": {
         "tool_result:command_output": {
-          "applied": 14,
-          "before": 80801,
-          "after": 44276,
-          "saved": 36525
+          "applied": 21,
+          "before": 128412,
+          "after": 80491,
+          "saved": 47921
         },
         "tool_result:file_read": {
           "applied": 1,
@@ -174,7 +174,7 @@
         }
       },
       "verdict": false,
-      "reason": "savings too small (0.061% of session cost < 0.10%)"
+      "reason": "savings too small (0.060% of session cost < 0.10%)"
     },
     "linenum_sparse": {
       "lossless": false,
@@ -194,29 +194,29 @@
         }
       },
       "verdict": false,
-      "reason": "savings too small (0.078% of session cost < 0.10%)"
+      "reason": "savings too small (0.077% of session cost < 0.10%)"
     },
     "log_filter": {
       "lossless": false,
-      "applied": 65,
-      "tokens_before": 272833,
-      "tokens_after": 21565,
+      "applied": 3,
+      "tokens_before": 11507,
+      "tokens_after": 1675,
       "weighted": {
-        "api_5m_haiku": 4251822.700000001,
-        "sub_1h_sonnet": 2471404.8500000006
+        "api_5m_haiku": 94232.00000000001,
+        "sub_1h_sonnet": 60635.0
       },
       "by_kind": {
-        "tool_result:command_output": {
-          "applied": 64,
-          "before": 271755,
-          "after": 21001,
-          "saved": 250754
-        },
         "tool_result:test_output": {
           "applied": 1,
           "before": 1078,
           "after": 564,
           "saved": 514
+        },
+        "tool_result:command_output": {
+          "applied": 2,
+          "before": 10429,
+          "after": 1111,
+          "saved": 9318
         }
       },
       "verdict": false,
@@ -250,19 +250,19 @@
     },
     "whitespace": {
       "lossless": true,
-      "applied": 58,
-      "tokens_before": 85539,
-      "tokens_after": 84558,
+      "applied": 59,
+      "tokens_before": 86550,
+      "tokens_after": 85561,
       "weighted": {
-        "api_5m_haiku": 11641.749999999998,
-        "sub_1h_sonnet": 7169.749999999997
+        "api_5m_haiku": 11683.849999999995,
+        "sub_1h_sonnet": 7201.799999999995
       },
       "by_kind": {
         "tool_result:command_output": {
-          "applied": 50,
-          "before": 73846,
-          "after": 73100,
-          "saved": 746
+          "applied": 51,
+          "before": 74857,
+          "after": 74103,
+          "saved": 754
         },
         "tool_result:test_output": {
           "applied": 4,
@@ -278,7 +278,7 @@
         }
       },
       "verdict": false,
-      "reason": "savings too small (0.040% of session cost < 0.10%)"
+      "reason": "savings too small (0.039% of session cost < 0.10%)"
     }
   }
 }
