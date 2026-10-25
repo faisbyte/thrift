@@ -6,6 +6,7 @@ version = "0.0.0"
 requires-python = ">=3.10"
 dependencies = [
     "thriftctx",
+    "reprouter",
     "pytest>=8",
     "pyyaml>=6",
 ]
@@ -15,9 +16,10 @@ package = false
 
 [tool.uv.sources]
 thriftctx = { path = "plugins/thrift", editable = true }
+reprouter = { path = "router", editable = true }
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["tests", "router/tests"]
 # Import from source even if the editable .pth is skipped (macOS marks some
 # venv files "hidden", and recent CPython ignores hidden .pth files).
-pythonpath = ["plugins/thrift/src"]
+pythonpath = ["plugins/thrift/src", "router/src"]

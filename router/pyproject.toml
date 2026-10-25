@@ -1,0 +1,25 @@
+[project]
+name = "reprouter"
+version = "0.1.0"
+description = "Representation router for Claude Code: cheapest faithful representation per context block."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "aiohttp>=3.9",
+    "pillow>=10",
+    "toon-format>=1.2,<2",
+    "thriftctx",
+]
+
+[project.scripts]
+reprouter = "reprouter.cli:main"
+
+[tool.uv.sources]
+thriftctx = { path = "../plugins/thrift", editable = true }
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/reprouter"]

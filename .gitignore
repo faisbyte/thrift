@@ -12,3 +12,7 @@ bench/results/
 .ruff_cache/
 .coverage
 .mcpb-cache/
+
+# reprouter
+corpus/
+router/.cache/
