@@ -1,0 +1,10 @@
+{
+  "name": "thrift",
+  "version": "0.1.0",
+  "description": "Local project code index (BM25 over symbol chunks) that points Claude at the right code: MCP search tools plus a prompt hook that injects likely-relevant locations.",
+  "author": {
+    "name": "Faisal Naveed"
+  },
+  "license": "MIT",
+  "keywords": ["retrieval", "search", "tokens", "index", "bm25", "tree-sitter"]
+}

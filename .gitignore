@@ -1,0 +1,14 @@
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.thrift/
+bench/.cache/
+bench/results/
+.env
+.DS_Store
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.mcpb-cache/

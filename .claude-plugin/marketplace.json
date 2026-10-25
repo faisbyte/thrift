@@ -1,0 +1,14 @@
+{
+  "name": "thrift-local",
+  "description": "Local marketplace for the thrift code-retrieval plugin",
+  "owner": {
+    "name": "Faisal Naveed"
+  },
+  "plugins": [
+    {
+      "name": "thrift",
+      "source": "./plugins/thrift",
+      "description": "Local project code index that points Claude at the right code with fewer tokens"
+    }
+  ]
+}

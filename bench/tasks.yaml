@@ -1,0 +1,209 @@
+# Benchmark tasks for thrift.
+#
+# Every run starts from a fresh copy of the repo at `sha`, re-initialised as a
+# single-commit git repo (no history to mine), with the task's `setup`
+# patches applied. Edit tasks are injected bugs: `check` must FAIL after setup
+# (verified by `run.py --validate`) and PASS once Claude fixes the bug.
+#
+# Fields
+#   kind: qa | edit
+#   prompt: what Claude is asked (written like a real user would)
+#   gold_files: files a good answer/fix must touch (used by retrieval_eval.py)
+#   expect_all / expect_any: regexes the final answer must match (qa)
+#   setup: list of {file, old, new} exact-string replacements (edit)
+#   check: shell command run in the work dir; exit 0 == success (edit)
+#   split: dev | holdout (tune the ranker on dev only)
+
+repo:
+  name: rich
+  url: https://github.com/Textualize/rich
+  sha: 9d8f9a372cc5916fd4781fec207ced7ddac2f08f
+  # deps needed to run the repo's own tests (installed into a bench venv;
+  # the repo itself is imported from the work dir, never installed)
+  test_deps: ["pygments>=2.13", "markdown-it-py>=2.2", "pytest>=7", "attrs", "typing-extensions>=4"]
+
+defaults:
+  qa_suffix: >-
+    Answer concisely. Cite the file path(s) and function/class names you rely on.
+    Do not modify any files.
+  edit_suffix: >-
+    Make the smallest correct fix in the library source (not the tests). Do not
+    add new tests. When done, reply with one line describing the fix.
+
+tasks:
+  # ------------------------------------------------------------------ Q&A
+  - id: qa-color-detect
+    kind: qa
+    split: dev
+    prompt: How does rich decide whether the terminal supports truecolor, 256 colors or only standard colors? Which function makes that decision?
+    gold_files: [rich/console.py]
+    expect_all: ['_detect_color_system', 'console\.py']
+
+  - id: qa-cell-width
+    kind: qa
+    split: dev
+    prompt: How does rich work out how many terminal cells a string occupies (for wide CJK characters and emoji)? Name the functions involved.
+    gold_files: [rich/cells.py]
+    expect_all: ['cells\.py', '(cell_len|get_character_cell_size|_cell_len)']
+
+  - id: qa-markup-parse
+    kind: qa
+    split: dev
+    prompt: Where is console markup like "[bold red]hello[/]" parsed into styled text? Point me at the parser.
+    gold_files: [rich/markup.py]
+    expect_all: ['markup\.py', '(_parse|render)']
+
+  - id: qa-live-refresh
+    kind: qa
+    split: dev
+    prompt: When using Live, what controls how often the display is refreshed automatically, and which class runs the background refresh?
+    gold_files: [rich/live.py]
+    expect_all: ['_RefreshThread', 'refresh_per_second']
+
+  - id: qa-wrap
+    kind: qa
+    split: holdout
+    prompt: Which code decides where to break a line of text when it is word-wrapped to a given width?
+    gold_files: [rich/_wrap.py, rich/text.py]
+    expect_all: ['divide_line']
+
+  - id: qa-traceback-locals
+    kind: qa
+    split: holdout
+    prompt: In rich's pretty tracebacks, where are local variables rendered, and what limits how long their values can be?
+    gold_files: [rich/traceback.py]
+    expect_all: ['traceback\.py', 'locals_max_(length|string)']
+
+  - id: qa-progress-speed
+    kind: qa
+    split: holdout
+    prompt: How does a progress Task estimate its speed (steps per second) used for the time-remaining column?
+    gold_files: [rich/progress.py]
+    expect_all: ['progress\.py', '(_progress|speed)']
+    expect_any: ['ProgressSample', 'sample', 'speed_estimate_period']
+
+  - id: qa-default-styles
+    kind: qa
+    split: holdout
+    prompt: Where is the default style for "repr.number" defined, and what is it?
+    gold_files: [rich/default_styles.py]
+    expect_all: ['default_styles\.py', 'cyan']
+
+  # ------------------------------------------------------------------ edits (injected bugs)
+  - id: edit-filesize-boundary
+    kind: edit
+    split: dev
+    prompt: filesize.decimal(1000) returns "1,000 bytes" but it should return "1.0 kB". Please fix it.
+    gold_files: [rich/filesize.py]
+    setup:
+      - file: rich/filesize.py
+        old: "    elif size < base:\n"
+        new: "    elif size <= base:\n"
+    check: python -m pytest -q -p no:cacheprovider tests/test_filesize.py
+
+  - id: edit-markup-escape
+    kind: edit
+    split: dev
+    prompt: >-
+      Escaping user-provided text for console markup is broken when the text has
+      backslashes right before something that looks like a tag: the backslashes
+      are not doubled, so the tag still gets interpreted when printed. Please fix it.
+    gold_files: [rich/markup.py]
+    setup:
+      - file: rich/markup.py
+        old: 'return f"{backslashes}{backslashes}\\{text}"'
+        new: 'return f"{backslashes}\\{text}"'
+    check: python -m pytest -q -p no:cacheprovider tests/test_markup.py
+
+  - id: edit-padding-css
+    kind: edit
+    split: dev
+    prompt: >-
+      Padding with two values, e.g. Padding("x", (1, 2)), should behave like CSS
+      (1 line top/bottom, 2 cells left/right) but the right/bottom values come out
+      swapped. Fix it.
+    gold_files: [rich/padding.py]
+    setup:
+      - file: rich/padding.py
+        old: "            return (pad_top, pad_right, pad_top, pad_right)\n"
+        new: "            return (pad_top, pad_top, pad_right, pad_right)\n"
+    check: python -m pytest -q -p no:cacheprovider tests/test_padding.py
+
+  - id: edit-ratio-distribute
+    kind: edit
+    split: dev
+    prompt: >-
+      When space is split between layout regions by ratio, the leftover cells go
+      to the last region instead of the first ones: splitting 10 cells over three
+      equal ratios gives [3, 3, 4] but should give [4, 3, 3]. Fix the distribution.
+    gold_files: [rich/_ratio.py]
+    setup:
+      - file: rich/_ratio.py
+        old: "distributed = max(minimum, ceil(ratio * total_remaining / total_ratio))"
+        new: "distributed = max(minimum, int(ratio * total_remaining / total_ratio))"
+    check: >-
+      python -c "from rich._ratio import ratio_distribute as r; assert r(10, [1, 1, 1]) == [4, 3, 3], r(10, [1, 1, 1])"
+      && python -m pytest -q -p no:cacheprovider tests/test_ratio.py tests/test_layout.py
+
+  - id: edit-ellipsis-width
+    kind: edit
+    split: holdout
+    prompt: >-
+      Text truncated with overflow="ellipsis" ends up one cell wider than the
+      requested width, because the "…" is added on top of the full width. Fix it.
+    gold_files: [rich/text.py]
+    setup:
+      - file: rich/text.py
+        old: '                    self.plain = set_cell_size(self.plain, max_width - 1) + "…"'
+        new: '                    self.plain = set_cell_size(self.plain, max_width) + "…"'
+    check: python -m pytest -q -p no:cacheprovider tests/test_text.py
+
+  - id: edit-progress-percentage
+    kind: edit
+    split: holdout
+    prompt: >-
+      A progress task that is advanced past its total reports a percentage above
+      100 (e.g. 150%). The percentage should be clamped to the 0-100 range. Fix it.
+    gold_files: [rich/progress.py]
+    setup:
+      - file: rich/progress.py
+        old: "        completed = min(100.0, max(0.0, completed))\n"
+        new: "        completed = max(0.0, completed)\n"
+    check: >-
+      python -c "from rich.progress import Task; t = Task(0, 'x', 100, 150, _get_time=lambda: 0.0); assert t.percentage == 100.0, t.percentage"
+      && python -m pytest -q -p no:cacheprovider tests/test_progress.py
+
+  - id: edit-split-lines
+    kind: edit
+    split: holdout
+    prompt: >-
+      Splitting rendered segments into lines drops the text that comes before a
+      newline inside a segment. Find and fix the line-splitting logic.
+    gold_files: [rich/segment.py]
+    setup:
+      - file: rich/segment.py
+        old: "                    _text, new_line, text = text.partition(\"\\n\")\n                    if _text:\n                        append(cls(_text, style))\n                    if new_line:\n                        yield line\n"
+        new: "                    _text, new_line, text = text.partition(\"\\n\")\n                    if _text and not new_line:\n                        append(cls(_text, style))\n                    if new_line:\n                        yield line\n"
+    check: python -m pytest -q -p no:cacheprovider tests/test_segment.py
+
+  - id: edit-blend-rgb
+    kind: edit
+    split: holdout
+    prompt: >-
+      blend_rgb(a, b, cross_fade) blends in the wrong direction: cross_fade=0
+      should give the first color and 1.0 the second, but it is reversed. Fix it.
+    gold_files: [rich/color.py]
+    setup:
+      - file: rich/color.py
+        old: "        int(r1 + (r2 - r1) * cross_fade),\n        int(g1 + (g2 - g1) * cross_fade),\n        int(b1 + (b2 - b1) * cross_fade),\n"
+        new: "        int(r2 + (r1 - r2) * cross_fade),\n        int(g2 + (g1 - g2) * cross_fade),\n        int(b2 + (b1 - b2) * cross_fade),\n"
+    check: python -m pytest -q -p no:cacheprovider tests/test_color.py tests/test_progress.py
+
+  # A trivial task to measure the fixed overhead (tool schemas, hook) per arm.
+  - id: noop-overhead
+    kind: qa
+    split: overhead
+    prompt: Reply with exactly the word OK.
+    gold_files: []
+    expect_all: ['OK']
+    no_suffix: true

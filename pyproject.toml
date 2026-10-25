@@ -1,0 +1,23 @@
+# Development environment for the whole repo (tests + benchmark).
+# The plugin itself has its own pyproject/uv.lock under plugins/thrift.
+[project]
+name = "thrift-dev"
+version = "0.0.0"
+requires-python = ">=3.10"
+dependencies = [
+    "thriftctx",
+    "pytest>=8",
+    "pyyaml>=6",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.sources]
+thriftctx = { path = "plugins/thrift", editable = true }
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+# Import from source even if the editable .pth is skipped (macOS marks some
+# venv files "hidden", and recent CPython ignores hidden .pth files).
+pythonpath = ["plugins/thrift/src"]
